@@ -1,0 +1,17 @@
+node_modules/
+.turbo/
+dist/
+build/
+.next/
+.expo/
+.expo-shared/
+*.log
+.env
+.env.local
+.DS_Store
+packages/database/prisma/dev.db
+packages/database/prisma/dev.db-journal
+packages/database/prisma/backups/
+apps/api/uploads/
+.vscode/*
+!.vscode/extensions.json

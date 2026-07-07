@@ -1,0 +1,126 @@
+import fs from "node:fs/promises";
+import path from "node:path";
+import type { FastifyInstance } from "fastify";
+import {
+  ADMIN_ROLES,
+  sendTestEmailInputSchema,
+  updateBarcodeSettingsInputSchema,
+  updateFineSettingsInputSchema,
+  updateLibrarySettingsInputSchema,
+} from "@thuvien/shared";
+import { deleteLogoImageFile, isAllowedImageMime, saveLogoImage } from "../../lib/uploads";
+import {
+  getBackupFilePath,
+  getBarcodeSettings,
+  getCurrentLogoUrl,
+  getEmailStatus,
+  getFineSettings,
+  getLibrarySettings,
+  isValidSqliteFile,
+  restoreDatabaseFile,
+  sendTestEmail,
+  setLibraryLogo,
+  updateBarcodeSettings,
+  updateFineSettings,
+  updateLibrarySettings,
+} from "./service";
+
+export async function settingsRoutes(app: FastifyInstance) {
+  app.addHook("preHandler", app.authenticate);
+  app.addHook("preHandler", app.requireRole(...ADMIN_ROLES));
+
+  // --- Thông tin thư viện ---
+  app.get("/library", async (_request, reply) => {
+    return reply.send(await getLibrarySettings());
+  });
+
+  app.patch("/library", async (request, reply) => {
+    const body = updateLibrarySettingsInputSchema.parse(request.body);
+    return reply.send(await updateLibrarySettings(body));
+  });
+
+  app.post("/library/logo", async (request, reply) => {
+    const file = await request.file();
+    if (!file) {
+      return reply.code(400).send({ message: "Vui lòng chọn ảnh" });
+    }
+    if (!isAllowedImageMime(file.mimetype)) {
+      return reply.code(400).send({ message: "Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP" });
+    }
+    const buffer = await file.toBuffer();
+    if (file.file.truncated) {
+      return reply.code(400).send({ message: "Ảnh tối đa 5MB" });
+    }
+    const existingLogoUrl = await getCurrentLogoUrl();
+    const url = await saveLogoImage(buffer, file.mimetype);
+    await deleteLogoImageFile(existingLogoUrl);
+    return reply.send(await setLibraryLogo(url));
+  });
+
+  app.delete("/library/logo", async (_request, reply) => {
+    const existingLogoUrl = await getCurrentLogoUrl();
+    await deleteLogoImageFile(existingLogoUrl);
+    await setLibraryLogo(null);
+    return reply.code(204).send();
+  });
+
+  // --- Mức phạt ---
+  app.get("/fine", async (_request, reply) => {
+    return reply.send(await getFineSettings());
+  });
+
+  app.patch("/fine", async (request, reply) => {
+    const body = updateFineSettingsInputSchema.parse(request.body);
+    return reply.send(await updateFineSettings(body.finePerDayVnd));
+  });
+
+  // --- Barcode ---
+  app.get("/barcode", async (_request, reply) => {
+    return reply.send(await getBarcodeSettings());
+  });
+
+  app.patch("/barcode", async (request, reply) => {
+    const body = updateBarcodeSettingsInputSchema.parse(request.body);
+    return reply.send(await updateBarcodeSettings(body.prefix));
+  });
+
+  // --- Email ---
+  app.get("/email", async (_request, reply) => {
+    return reply.send(getEmailStatus());
+  });
+
+  app.post("/email/test", async (request, reply) => {
+    const body = sendTestEmailInputSchema.parse(request.body);
+    const sent = await sendTestEmail(body.to);
+    if (!sent) {
+      return reply.code(409).send({ message: "Chưa cấu hình SMTP hoặc gửi email thất bại" });
+    }
+    return reply.send({ sent: true });
+  });
+
+  // --- Sao lưu / Khôi phục ---
+  app.get("/backup", async (_request, reply) => {
+    const dbPath = getBackupFilePath();
+    const buffer = await fs.readFile(dbPath);
+    const filename = `sao-luu-${new Date().toISOString().slice(0, 10)}.db`;
+    reply.header("Content-Disposition", `attachment; filename="${filename}"`);
+    return reply.type("application/octet-stream").send(buffer);
+  });
+
+  app.post("/restore", async (request, reply) => {
+    const file = await request.file({ limits: { fileSize: 200 * 1024 * 1024 } });
+    if (!file) {
+      return reply.code(400).send({ message: "Vui lòng chọn file sao lưu (.db)" });
+    }
+    if (path.extname(file.filename) !== ".db") {
+      return reply.code(400).send({ message: "File không hợp lệ — vui lòng chọn file .db" });
+    }
+    const buffer = await file.toBuffer();
+    if (!isValidSqliteFile(buffer)) {
+      return reply.code(400).send({ message: "File không hợp lệ — không phải file cơ sở dữ liệu SQLite" });
+    }
+
+    await restoreDatabaseFile(buffer);
+    return reply.send({ success: true });
+  });
+}

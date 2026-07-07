@@ -1,0 +1,199 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// SQLite has no native enum support in Prisma; these fields are constrained
+// to fixed string values at the application layer via Zod (packages/shared).
+// Role: "QUAN_TRI" | "THU_THU" | "CONG_TAC_VIEN" (User table) | "CHUNG_SINH" (Patron table)
+// CopyStatus: "AVAILABLE" | "BORROWED" | "LOST" | "DAMAGED" | "WITHDRAWN"
+// LoanStatus: "ACTIVE" | "RETURNED" | "OVERDUE"
+// FineStatus: "UNPAID" | "PAID" | "WAIVED"
+
+model User {
+  id            String         @id @default(cuid())
+  fullName      String
+  email         String         @unique
+  passwordHash  String
+  role          String         @default("THU_THU")
+  isActive      Boolean        @default(true)
+  avatarUrl     String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  refreshTokens RefreshToken[]
+}
+
+model Patron {
+  id            String         @id @default(cuid())
+  studentCode   String         @unique
+  fullName      String
+  className     String?
+  phone         String?
+  email         String?        @unique
+  avatarUrl     String?
+  passwordHash  String
+  isActive      Boolean        @default(true)
+  patronTypeId  String?
+  patronType    PatronType?    @relation(fields: [patronTypeId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  loans         Loan[]
+  fines         Fine[]
+  refreshTokens RefreshToken[]
+
+  @@index([patronTypeId])
+}
+
+/// Loại độc giả — mỗi loại mang một chính sách mượn riêng (số sách tối đa, số ngày mượn, số lần gia hạn).
+/// Đúng một dòng có isDefault=true, dùng làm chính sách áp dụng cho chủng sinh chưa gán loại.
+model PatronType {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  maxActiveLoans Int      @default(5)
+  loanPeriodDays Int      @default(14)
+  maxRenewals    Int      @default(1)
+  isDefault      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  patrons        Patron[]
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String?
+  user      User?     @relation(fields: [userId], references: [id])
+  patronId  String?
+  patron    Patron?   @relation(fields: [patronId], references: [id])
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+  @@index([patronId])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  books     Book[]
+  createdAt DateTime @default(now())
+}
+
+model Author {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  books     Book[]
+  createdAt DateTime @default(now())
+}
+
+model Book {
+  id            String     @id @default(cuid())
+  title         String
+  authorId      String
+  author        Author     @relation(fields: [authorId], references: [id])
+  publisher     String?
+  publishedYear Int?
+  isbn          String?    @unique
+  language      String?    @default("Tiếng Việt")
+  description   String?
+  coverImageUrl String?
+  categoryId    String
+  category      Category   @relation(fields: [categoryId], references: [id])
+  copies        BookCopy[]
+  isDeleted     Boolean    @default(false)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([title])
+}
+
+model BookCopy {
+  id        String     @id @default(cuid())
+  bookId    String
+  book      Book       @relation(fields: [bookId], references: [id])
+  barcode   String     @unique
+  status    String     @default("AVAILABLE")
+  location  String?
+  notes     String?
+  loans     Loan[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([bookId])
+}
+
+model Loan {
+  id           String     @id @default(cuid())
+  copyId       String
+  copy         BookCopy   @relation(fields: [copyId], references: [id])
+  patronId     String
+  patron       Patron     @relation(fields: [patronId], references: [id])
+  borrowedAt   DateTime   @default(now())
+  dueDate      DateTime
+  returnedAt   DateTime?
+  status       String     @default("ACTIVE")
+  renewedCount Int        @default(0)
+  fine         Fine?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([patronId])
+  @@index([copyId])
+  @@index([status])
+}
+
+model Fine {
+  id        String     @id @default(cuid())
+  loanId    String     @unique
+  loan      Loan       @relation(fields: [loanId], references: [id])
+  patronId  String
+  patron    Patron     @relation(fields: [patronId], references: [id])
+  amount    Int
+  reason    String     @default("Trả sách trễ hạn")
+  status    String     @default("UNPAID")
+  paidAt    DateTime?
+  createdAt DateTime   @default(now())
+
+  @@index([patronId])
+  @@index([status])
+}
+
+/// Singleton row (id luôn là "singleton") lưu cấu hình bật/tắt gửi email thông báo tự động.
+model NotificationSettings {
+  id              String   @id @default("singleton")
+  autoSendEnabled Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+}
+
+/// Singleton row lưu thông tin thư viện hiển thị trên thẻ thành viên/báo cáo.
+model LibrarySettings {
+  id        String   @id @default("singleton")
+  name      String   @default("Thư viện Đại Chủng Viện Phaolô Lê Bảo Tịnh")
+  address   String?
+  phone     String?
+  email     String?
+  logoUrl   String?
+  updatedAt DateTime @updatedAt
+}
+
+/// Singleton row lưu mức phạt trên mỗi ngày trễ hạn (VNĐ), áp dụng chung cho mọi chủng sinh.
+model FineSettings {
+  id            String   @id @default("singleton")
+  finePerDayVnd Int      @default(5000)
+  updatedAt     DateTime @updatedAt
+}
+
+/// Singleton row lưu tiền tố mã vạch dùng khi tự sinh mã vạch cho bản sao sách mới.
+model BarcodeSettings {
+  id        String   @id @default("singleton")
+  prefix    String?
+  updatedAt DateTime @updatedAt
+}
