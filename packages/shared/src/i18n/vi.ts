@@ -136,6 +136,9 @@ export const vi = {
     noDescription: "Chưa có mô tả",
     resultsFound: "sách được tìm thấy",
     notFound: "Không tìm thấy sách này",
+    sectionBasicInfo: "Thông tin cơ bản",
+    sectionPublicationInfo: "Thông tin xuất bản",
+    sectionCopiesLocation: "Số lượng & vị trí",
   },
   copy: {
     title: "Bản sao",

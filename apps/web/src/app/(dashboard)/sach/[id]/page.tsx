@@ -210,13 +210,13 @@ export default function ChiTietSachPage() {
   }
 
   return (
-    <div className="max-w-3xl">
+    <div>
       <Link href="/sach" className="flex w-fit items-center gap-1 text-sm text-slate-500 hover:underline">
         <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
         {vi.common.back}
       </Link>
 
-      <div className="mt-2 flex items-center justify-between">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-lg font-semibold text-slate-800">
           {isStaff ? vi.book.editBook : book.title}
         </h1>
@@ -231,176 +231,201 @@ export default function ChiTietSachPage() {
         <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
       )}
 
-      <div className="mt-4 flex items-start gap-4">
-        {book.coverImageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={resolveAssetUrl(book.coverImageUrl) ?? undefined}
-            alt={book.title}
-            className="h-48 w-32 rounded-md border border-slate-200 object-cover"
-          />
-        ) : (
-          <div className="flex h-48 w-32 items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 text-center text-xs text-slate-400">
-            {vi.book.noCover}
-          </div>
-        )}
-        {isStaff && (
-          <div className="flex flex-col gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              onChange={handleCoverChange}
-              className="hidden"
-            />
-            <Button
-              icon={Upload}
-              size="sm"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploadCover.isPending}
-            >
-              {book.coverImageUrl ? vi.book.changeCover : vi.book.uploadCover}
-            </Button>
-            {book.coverImageUrl && canDelete && (
-              <Button icon={Trash2} variant="danger" size="sm" onClick={handleRemoveCover} disabled={removeCover.isPending}>
-                {vi.book.removeCover}
-              </Button>
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div className="lg:col-span-1">
+          <div className="flex flex-col items-center rounded-lg border border-slate-200 bg-white p-6">
+            {book.coverImageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={resolveAssetUrl(book.coverImageUrl) ?? undefined}
+                alt={book.title}
+                className="aspect-[2/3] w-40 rounded-md border border-slate-200 object-cover"
+              />
+            ) : (
+              <div className="flex aspect-[2/3] w-40 items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 text-center text-xs text-slate-400">
+                {vi.book.noCover}
+              </div>
+            )}
+            <p className="mt-3 text-center text-sm font-medium text-slate-800">{book.title}</p>
+            <p className="text-center text-xs text-slate-500">{book.author.name}</p>
+            {isStaff && (
+              <div className="mt-4 flex w-full flex-col gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handleCoverChange}
+                  className="hidden"
+                />
+                <Button
+                  icon={Upload}
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadCover.isPending}
+                >
+                  {book.coverImageUrl ? vi.book.changeCover : vi.book.uploadCover}
+                </Button>
+                {book.coverImageUrl && canDelete && (
+                  <Button icon={Trash2} variant="danger" size="sm" onClick={handleRemoveCover} disabled={removeCover.isPending}>
+                    {vi.book.removeCover}
+                  </Button>
+                )}
+              </div>
             )}
           </div>
-        )}
+        </div>
+
+        <div className="lg:col-span-2">
+          {!isStaff && (
+            <div className="space-y-2 rounded-lg border border-slate-200 bg-white p-6 text-sm">
+              <p>
+                <span className="font-medium text-slate-700">{vi.book.author}:</span>{" "}
+                <span className="text-slate-600">{book.author.name}</span>
+              </p>
+              <p>
+                <span className="font-medium text-slate-700">{vi.book.category}:</span>{" "}
+                <span className="text-slate-600">{book.category.name}</span>
+              </p>
+              {book.publisher && (
+                <p>
+                  <span className="font-medium text-slate-700">{vi.book.publisher}:</span>{" "}
+                  <span className="text-slate-600">{book.publisher}</span>
+                </p>
+              )}
+              {book.publishedYear && (
+                <p>
+                  <span className="font-medium text-slate-700">{vi.book.publishedYear}:</span>{" "}
+                  <span className="text-slate-600">{book.publishedYear}</span>
+                </p>
+              )}
+              {book.description && (
+                <p>
+                  <span className="font-medium text-slate-700">{vi.book.description}:</span>{" "}
+                  <span className="text-slate-600">{book.description}</span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {isStaff && (
+            <form onSubmit={handleSave} className="space-y-6">
+              <div className="rounded-lg border border-slate-200 bg-white p-6">
+                <h2 className="text-sm font-semibold text-[#0f1c3a]">{vi.book.sectionBasicInfo}</h2>
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700">{vi.book.title}</label>
+                    <input
+                      required
+                      value={form.title}
+                      onChange={(e) => setForm({ ...form, title: e.target.value })}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">{vi.book.author}</label>
+                    <select
+                      required
+                      value={form.authorId}
+                      onChange={(e) => setForm({ ...form, authorId: e.target.value })}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                    >
+                      {authors?.map((author) => (
+                        <option key={author.id} value={author.id}>
+                          {author.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">{vi.book.category}</label>
+                    <select
+                      value={form.categoryId}
+                      onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                    >
+                      {categories?.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-white p-6">
+                <h2 className="text-sm font-semibold text-[#0f1c3a]">{vi.book.sectionPublicationInfo}</h2>
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">{vi.book.publisher}</label>
+                    <input
+                      value={form.publisher}
+                      onChange={(e) => setForm({ ...form, publisher: e.target.value })}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">{vi.book.publishedYear}</label>
+                    <input
+                      type="number"
+                      value={form.publishedYear}
+                      onChange={(e) => setForm({ ...form, publishedYear: e.target.value })}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">{vi.book.isbn}</label>
+                    <input
+                      value={form.isbn}
+                      onChange={(e) => setForm({ ...form, isbn: e.target.value })}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">{vi.book.language}</label>
+                    <input
+                      value={form.language}
+                      onChange={(e) => setForm({ ...form, language: e.target.value })}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700">{vi.book.description}</label>
+                    <textarea
+                      value={form.description}
+                      onChange={(e) => setForm({ ...form, description: e.target.value })}
+                      rows={4}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-slate-200 bg-white p-6">
+                <h2 className="text-sm font-semibold text-[#0f1c3a]">{vi.book.sectionCopiesLocation}</h2>
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-slate-700">{vi.copy.location}</label>
+                    <input
+                      value={form.location}
+                      onChange={(e) => setForm({ ...form, location: e.target.value })}
+                      placeholder={book.copies.length > 1 ? vi.book.locationAppliesToAll : undefined}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button icon={Save} type="submit" disabled={updateBook.isPending}>
+                  {vi.common.save}
+                </Button>
+              </div>
+            </form>
+          )}
+        </div>
       </div>
-
-      {!isStaff && (
-        <div className="mt-4 space-y-2 rounded-lg border border-slate-200 bg-white p-6 text-sm">
-          <p>
-            <span className="font-medium text-slate-700">{vi.book.author}:</span>{" "}
-            <span className="text-slate-600">{book.author.name}</span>
-          </p>
-          <p>
-            <span className="font-medium text-slate-700">{vi.book.category}:</span>{" "}
-            <span className="text-slate-600">{book.category.name}</span>
-          </p>
-          {book.publisher && (
-            <p>
-              <span className="font-medium text-slate-700">{vi.book.publisher}:</span>{" "}
-              <span className="text-slate-600">{book.publisher}</span>
-            </p>
-          )}
-          {book.publishedYear && (
-            <p>
-              <span className="font-medium text-slate-700">{vi.book.publishedYear}:</span>{" "}
-              <span className="text-slate-600">{book.publishedYear}</span>
-            </p>
-          )}
-          {book.description && (
-            <p>
-              <span className="font-medium text-slate-700">{vi.book.description}:</span>{" "}
-              <span className="text-slate-600">{book.description}</span>
-            </p>
-          )}
-        </div>
-      )}
-
-      {isStaff && (
-      <form onSubmit={handleSave} className="mt-4 space-y-4 rounded-lg border border-slate-200 bg-white p-6">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-slate-700">{vi.book.title}</label>
-            <input
-              required
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">{vi.book.author}</label>
-            <select
-              required
-              value={form.authorId}
-              onChange={(e) => setForm({ ...form, authorId: e.target.value })}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            >
-              {authors?.map((author) => (
-                <option key={author.id} value={author.id}>
-                  {author.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">{vi.book.category}</label>
-            <select
-              value={form.categoryId}
-              onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            >
-              {categories?.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">{vi.book.publisher}</label>
-            <input
-              value={form.publisher}
-              onChange={(e) => setForm({ ...form, publisher: e.target.value })}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">{vi.book.publishedYear}</label>
-            <input
-              type="number"
-              value={form.publishedYear}
-              onChange={(e) => setForm({ ...form, publishedYear: e.target.value })}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">{vi.book.isbn}</label>
-            <input
-              value={form.isbn}
-              onChange={(e) => setForm({ ...form, isbn: e.target.value })}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">{vi.book.language}</label>
-            <input
-              value={form.language}
-              onChange={(e) => setForm({ ...form, language: e.target.value })}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">{vi.copy.location}</label>
-            <input
-              value={form.location}
-              onChange={(e) => setForm({ ...form, location: e.target.value })}
-              placeholder={book.copies.length > 1 ? vi.book.locationAppliesToAll : undefined}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
-          </div>
-          <div className="col-span-2">
-            <label className="block text-sm font-medium text-slate-700">{vi.book.description}</label>
-            <textarea
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              rows={3}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            />
-          </div>
-        </div>
-        <div className="flex justify-end">
-          <Button icon={Save} type="submit" disabled={updateBook.isPending}>
-            {vi.common.save}
-          </Button>
-        </div>
-      </form>
-      )}
 
       <div className="mt-8">
         <div className="flex items-center justify-between">
