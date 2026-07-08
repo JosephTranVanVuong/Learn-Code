@@ -205,3 +205,16 @@ model BackupSettings {
   retentionCount    Int      @default(7)
   updatedAt         DateTime @updatedAt
 }
+
+/// Nhật ký các lần xóa dữ liệu hàng loạt (Cài đặt > Xóa dữ liệu) — actorId/actorName lưu dạng snapshot
+/// (không dùng quan hệ khóa ngoại) để nhật ký vẫn còn đầy đủ dù tài khoản thực hiện sau này bị xóa.
+model DataDeletionLog {
+  id        String   @id @default(cuid())
+  actorId   String
+  actorName String
+  action    String
+  summary   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

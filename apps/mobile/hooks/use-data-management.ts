@@ -1,5 +1,5 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { DeleteAllDataInput } from "@thuvien/shared";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { DeleteWithConfirmationInput } from "@thuvien/shared";
 import { dataManagementApi } from "../lib/resources";
 
 function useInvalidateAllData() {
@@ -7,10 +7,18 @@ function useInvalidateAllData() {
   return () => qc.invalidateQueries();
 }
 
+export function useDeleteDataCounts() {
+  return useQuery({ queryKey: ["data-management", "counts"], queryFn: () => dataManagementApi.getCounts() });
+}
+
+export function useDeletionLogs() {
+  return useQuery({ queryKey: ["data-management", "logs"], queryFn: () => dataManagementApi.getLogs() });
+}
+
 export function useDeleteLoansFines() {
   const invalidateAll = useInvalidateAllData();
   return useMutation({
-    mutationFn: () => dataManagementApi.deleteLoansFines(),
+    mutationFn: (input: DeleteWithConfirmationInput) => dataManagementApi.deleteLoansFines(input),
     onSuccess: invalidateAll,
   });
 }
@@ -18,7 +26,7 @@ export function useDeleteLoansFines() {
 export function useDeletePatronsData() {
   const invalidateAll = useInvalidateAllData();
   return useMutation({
-    mutationFn: () => dataManagementApi.deletePatrons(),
+    mutationFn: (input: DeleteWithConfirmationInput) => dataManagementApi.deletePatrons(input),
     onSuccess: invalidateAll,
   });
 }
@@ -26,7 +34,7 @@ export function useDeletePatronsData() {
 export function useDeleteBooksData() {
   const invalidateAll = useInvalidateAllData();
   return useMutation({
-    mutationFn: () => dataManagementApi.deleteBooks(),
+    mutationFn: (input: DeleteWithConfirmationInput) => dataManagementApi.deleteBooks(input),
     onSuccess: invalidateAll,
   });
 }
@@ -34,7 +42,7 @@ export function useDeleteBooksData() {
 export function useDeleteCategoriesAuthorsData() {
   const invalidateAll = useInvalidateAllData();
   return useMutation({
-    mutationFn: () => dataManagementApi.deleteCategoriesAuthors(),
+    mutationFn: (input: DeleteWithConfirmationInput) => dataManagementApi.deleteCategoriesAuthors(input),
     onSuccess: invalidateAll,
   });
 }
@@ -42,7 +50,7 @@ export function useDeleteCategoriesAuthorsData() {
 export function useDeleteAllData() {
   const invalidateAll = useInvalidateAllData();
   return useMutation({
-    mutationFn: (input: DeleteAllDataInput) => dataManagementApi.deleteAll(input),
+    mutationFn: (input: DeleteWithConfirmationInput) => dataManagementApi.deleteAll(input),
     onSuccess: invalidateAll,
   });
 }
