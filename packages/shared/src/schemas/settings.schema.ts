@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { RESTORE_CONFIRM_PHRASE } from "../constants";
 
 export const librarySettingsSchema = z.object({
   name: z.string(),
@@ -49,3 +50,30 @@ export const sendTestEmailInputSchema = z.object({
   to: z.string().email("Email không hợp lệ"),
 });
 export type SendTestEmailInput = z.infer<typeof sendTestEmailInputSchema>;
+
+export const backupSettingsSchema = z.object({
+  autoBackupEnabled: z.boolean(),
+  retentionCount: z.number().int().min(1).max(90),
+});
+export type BackupSettings = z.infer<typeof backupSettingsSchema>;
+
+export const updateBackupSettingsInputSchema = z.object({
+  autoBackupEnabled: z.boolean().optional(),
+  retentionCount: z.number().int().min(1).max(90).optional(),
+});
+export type UpdateBackupSettingsInput = z.infer<typeof updateBackupSettingsInputSchema>;
+
+export const backupEntrySchema = z.object({
+  filename: z.string(),
+  label: z.string(),
+  createdAt: z.string(),
+  sizeBytes: z.number().int(),
+});
+export type BackupEntry = z.infer<typeof backupEntrySchema>;
+
+export const restoreConfirmInputSchema = z.object({
+  confirm: z.literal(RESTORE_CONFIRM_PHRASE, {
+    message: `Vui lòng gõ đúng "${RESTORE_CONFIRM_PHRASE}" để xác nhận`,
+  }),
+});
+export type RestoreConfirmInput = z.infer<typeof restoreConfirmInputSchema>;

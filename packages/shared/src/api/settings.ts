@@ -1,10 +1,13 @@
 import type { ApiClient } from "../api-client";
 import type {
+  BackupEntry,
+  BackupSettings,
   BarcodeSettings,
   EmailStatus,
   FineSettings,
   LibrarySettings,
   SendTestEmailInput,
+  UpdateBackupSettingsInput,
   UpdateBarcodeSettingsInput,
   UpdateFineSettingsInput,
   UpdateLibrarySettingsInput,
@@ -30,8 +33,23 @@ export function createSettingsApi(client: ApiClient) {
     sendTestEmail: (input: SendTestEmailInput) =>
       client.post<{ sent: boolean }>("/api/v1/settings/email/test", input),
 
-    downloadBackup: () => client.getBlob("/api/v1/settings/backup"),
-    restoreBackup: (formData: FormData) =>
-      client.upload<{ success: boolean }>("/api/v1/settings/restore", formData),
+    getBackupSettings: () => client.get<BackupSettings>("/api/v1/settings/backup-settings"),
+    updateBackupSettings: (input: UpdateBackupSettingsInput) =>
+      client.patch<BackupSettings>("/api/v1/settings/backup-settings", input),
+
+    listBackups: () => client.get<BackupEntry[]>("/api/v1/settings/backups"),
+    createBackup: () => client.post<BackupEntry>("/api/v1/settings/backups"),
+    downloadBackupFile: (filename: string) =>
+      client.getBlob(`/api/v1/settings/backups/${encodeURIComponent(filename)}/download`),
+    deleteBackup: (filename: string) => client.delete<void>(`/api/v1/settings/backups/${encodeURIComponent(filename)}`),
+    restoreFromBackup: (filename: string, confirm: string) =>
+      client.post<{ success: boolean }>(`/api/v1/settings/backups/${encodeURIComponent(filename)}/restore`, {
+        confirm,
+      }),
+    restoreBackup: (formData: FormData, confirm: string) =>
+      client.upload<{ success: boolean }>(
+        `/api/v1/settings/restore?confirm=${encodeURIComponent(confirm)}`,
+        formData,
+      ),
   };
 }

@@ -197,3 +197,11 @@ model BarcodeSettings {
   prefix    String?
   updatedAt DateTime @updatedAt
 }
+
+/// Singleton row lưu cấu hình sao lưu tự động hàng ngày (bật/tắt, số bản giữ lại).
+model BackupSettings {
+  id                String   @id @default("singleton")
+  autoBackupEnabled Boolean  @default(true)
+  retentionCount    Int      @default(7)
+  updatedAt         DateTime @updatedAt
+}

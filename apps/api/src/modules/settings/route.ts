@@ -1,25 +1,33 @@
-import fs from "node:fs/promises";
 import path from "node:path";
 import type { FastifyInstance } from "fastify";
 import {
   ADMIN_ROLES,
+  RESTORE_CONFIRM_PHRASE,
+  restoreConfirmInputSchema,
   sendTestEmailInputSchema,
+  updateBackupSettingsInputSchema,
   updateBarcodeSettingsInputSchema,
   updateFineSettingsInputSchema,
   updateLibrarySettingsInputSchema,
 } from "@thuvien/shared";
 import { deleteLogoImageFile, isAllowedImageMime, saveLogoImage } from "../../lib/uploads";
 import {
-  getBackupFilePath,
+  createManualBackup,
+  downloadBackupFile,
+  getBackupSettings,
   getBarcodeSettings,
   getCurrentLogoUrl,
   getEmailStatus,
   getFineSettings,
   getLibrarySettings,
   isValidSqliteFile,
+  listBackupHistory,
+  removeBackupFile,
   restoreDatabaseFile,
+  restoreFromBackup,
   sendTestEmail,
   setLibraryLogo,
+  updateBackupSettings,
   updateBarcodeSettings,
   updateFineSettings,
   updateLibrarySettings,
@@ -99,15 +107,64 @@ export async function settingsRoutes(app: FastifyInstance) {
   });
 
   // --- Sao lưu / Khôi phục ---
-  app.get("/backup", async (_request, reply) => {
-    const dbPath = getBackupFilePath();
-    const buffer = await fs.readFile(dbPath);
-    const filename = `sao-luu-${new Date().toISOString().slice(0, 10)}.db`;
+  app.get("/backup-settings", async (_request, reply) => {
+    return reply.send(await getBackupSettings());
+  });
+
+  app.patch("/backup-settings", async (request, reply) => {
+    const body = updateBackupSettingsInputSchema.parse(request.body);
+    return reply.send(await updateBackupSettings(body));
+  });
+
+  app.get("/backups", async (_request, reply) => {
+    return reply.send(await listBackupHistory());
+  });
+
+  app.post("/backups", async (_request, reply) => {
+    return reply.send(await createManualBackup());
+  });
+
+  app.get("/backups/:filename/download", async (request, reply) => {
+    const { filename } = request.params as { filename: string };
+    let buffer: Buffer;
+    try {
+      buffer = await downloadBackupFile(filename);
+    } catch {
+      return reply.code(404).send({ message: "Không tìm thấy file sao lưu" });
+    }
     reply.header("Content-Disposition", `attachment; filename="${filename}"`);
     return reply.type("application/octet-stream").send(buffer);
   });
 
+  app.delete("/backups/:filename", async (request, reply) => {
+    const { filename } = request.params as { filename: string };
+    try {
+      await removeBackupFile(filename);
+    } catch {
+      return reply.code(404).send({ message: "Không tìm thấy file sao lưu" });
+    }
+    return reply.code(204).send();
+  });
+
+  app.post("/backups/:filename/restore", async (request, reply) => {
+    const { filename } = request.params as { filename: string };
+    const parsed = restoreConfirmInputSchema.safeParse(request.body);
+    if (!parsed.success) {
+      return reply.code(400).send({ message: `Vui lòng gõ đúng "${RESTORE_CONFIRM_PHRASE}" để xác nhận` });
+    }
+    try {
+      await restoreFromBackup(filename);
+    } catch {
+      return reply.code(404).send({ message: "Không tìm thấy file sao lưu" });
+    }
+    return reply.send({ success: true });
+  });
+
   app.post("/restore", async (request, reply) => {
+    const query = request.query as { confirm?: string };
+    if (query.confirm !== RESTORE_CONFIRM_PHRASE) {
+      return reply.code(400).send({ message: `Vui lòng gõ đúng "${RESTORE_CONFIRM_PHRASE}" để xác nhận` });
+    }
     const file = await request.file({ limits: { fileSize: 200 * 1024 * 1024 } });
     if (!file) {
       return reply.code(400).send({ message: "Vui lòng chọn file sao lưu (.db)" });

@@ -1,3 +1,5 @@
+import { RESTORE_CONFIRM_PHRASE } from "../constants";
+
 export const vi = {
   app: {
     name: "Thư Viện ĐCV Phaolô Lê Bảo Tịnh",
@@ -394,13 +396,33 @@ export const vi = {
 
     backup: "Sao lưu",
     restore: "Khôi phục",
-    backupRestoreDesc: "Tải file cơ sở dữ liệu về máy để sao lưu, hoặc tải file lên để khôi phục.",
+    backupRestoreDesc: "Sao lưu tự động chạy hàng ngày; bạn cũng có thể sao lưu thủ công hoặc khôi phục từ một bản đã lưu bất kỳ lúc nào.",
     downloadBackup: "Tải file sao lưu (.db)",
     restoreFile: "Chọn file sao lưu (.db)",
     restoreSubmit: "Khôi phục từ file",
     restoreConfirm: "Khôi phục sẽ THAY THẾ toàn bộ dữ liệu hiện tại bằng file đã chọn. Hệ thống sẽ tự sao lưu dữ liệu hiện tại trước khi khôi phục. Bạn chắc chắn muốn tiếp tục?",
     restoreInvalidFile: "File không hợp lệ — vui lòng chọn đúng file .db đã sao lưu từ hệ thống này",
-    restoreSuccess: "Khôi phục thành công. Hệ thống sẽ khởi động lại trong giây lát...",
+    restoreSuccess: "Khôi phục thành công. Vui lòng đăng xuất và đăng nhập lại để tiếp tục.",
+
+    backupAutoSettings: "Sao lưu tự động",
+    backupAutoEnabled: "Bật sao lưu tự động hàng ngày (3:00 sáng)",
+    backupRetentionCount: "Số bản tự động giữ lại",
+    backupRetentionDesc: "Bản sao lưu tự động cũ hơn sẽ tự bị xóa khi vượt quá số lượng này. Bản thủ công và bản an toàn (tạo trước thao tác nguy hiểm) không bị ảnh hưởng.",
+    backupNow: "Sao lưu ngay",
+    backupHistory: "Lịch sử sao lưu",
+    backupCreatedAt: "Thời gian tạo",
+    backupSize: "Dung lượng",
+    backupType: "Loại",
+    backupEmpty: "Chưa có bản sao lưu nào",
+    backupLabelManual: "Thủ công",
+    backupLabelAuto: "Tự động",
+    backupLabelOther: "An toàn (trước thao tác nguy hiểm)",
+    backupDownload: "Tải xuống",
+    backupDeleteConfirm: "Xóa bản sao lưu này? Không thể hoàn tác.",
+    backupRestoreFromHistory: "Khôi phục từ bản này",
+    threeTwoOneTip: "Khuyến nghị: định kỳ sao chép file đã tải về ra một nơi khác (USB, ổ đĩa đám mây) ngoài máy chủ này, để phòng trường hợp mất hoặc hỏng máy.",
+    restoreConfirmPhraseLabel: `Gõ chính xác "${RESTORE_CONFIRM_PHRASE}" để tiếp tục`,
+    restoreConfirmPhraseMismatch: `Vui lòng gõ đúng "${RESTORE_CONFIRM_PHRASE}"`,
 
     deleteData: "Xóa dữ liệu",
     deleteDataDesc: "Xóa dữ liệu theo từng loại hoặc xóa toàn bộ. Hệ thống sẽ tự động sao lưu trước khi xóa. Tài khoản người dùng và cấu hình hệ thống không bị ảnh hưởng.",

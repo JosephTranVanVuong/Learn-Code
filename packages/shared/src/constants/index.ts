@@ -30,3 +30,6 @@ export type FineStatus = (typeof FINE_STATUSES)[number];
 
 export const ACCESS_TOKEN_TTL_MINUTES = 15;
 export const REFRESH_TOKEN_TTL_DAYS = 30;
+
+/** Cụm từ bắt buộc phải gõ đúng để xác nhận khôi phục dữ liệu (thao tác không thể hoàn tác). */
+export const RESTORE_CONFIRM_PHRASE = "XÁC NHẬN";
