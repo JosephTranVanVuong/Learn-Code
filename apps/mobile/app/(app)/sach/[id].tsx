@@ -9,9 +9,12 @@ import {
   useBook,
   useDeleteBook,
   useRemoveBookCover,
+  useUpdateBook,
   useUpdateBookCopiesLocation,
   useUploadBookCover,
 } from "../../../hooks/use-books";
+import { useAuthors } from "../../../hooks/use-authors";
+import { useCategories } from "../../../hooks/use-categories";
 import { useAddCopies, useDeleteCopy, useUpdateCopy } from "../../../hooks/use-copies";
 
 const COPY_STATUS_OPTIONS: CopyStatus[] = ["AVAILABLE", "BORROWED", "LOST", "DAMAGED", "WITHDRAWN"];
@@ -22,6 +25,41 @@ function commonCopyLocation(copies: { location: string | null }[]): string {
   return copies.every((c) => (c.location ?? "") === first) ? first : "";
 }
 
+function Field({
+  label,
+  value,
+  onChangeText,
+  keyboardType,
+  multiline,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (v: string) => void;
+  keyboardType?: "default" | "numeric";
+  multiline?: boolean;
+}) {
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginBottom: 4 }}>{label}</Text>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        keyboardType={keyboardType}
+        multiline={multiline}
+        style={{
+          borderWidth: 1,
+          borderColor: "#cbd5e1",
+          borderRadius: 8,
+          padding: 10,
+          backgroundColor: "white",
+          textAlignVertical: multiline ? "top" : "center",
+          minHeight: multiline ? 80 : undefined,
+        }}
+      />
+    </View>
+  );
+}
+
 export default function SachDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
@@ -29,7 +67,10 @@ export default function SachDetailScreen() {
   const isStaff = user ? STAFF_ROLES.includes(user.role) : false;
   const canDelete = user ? DESTRUCTIVE_ROLES.includes(user.role) : false;
   const { data: book, isLoading } = useBook(id);
+  const { data: authors } = useAuthors();
+  const { data: categories } = useCategories();
   const deleteBook = useDeleteBook();
+  const updateBook = useUpdateBook(id);
   const updateCopiesLocation = useUpdateBookCopiesLocation(id);
   const addCopies = useAddCopies(id);
   const updateCopy = useUpdateCopy(id);
@@ -41,8 +82,20 @@ export default function SachDetailScreen() {
   const [newCopyLocation, setNewCopyLocation] = useState("");
   const locationDrafts = useRef<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [bulkLocation, setBulkLocation] = useState<string | null>(null);
   const [initialBulkLocation, setInitialBulkLocation] = useState("");
+
+  const [form, setForm] = useState<{
+    title: string;
+    authorId: string;
+    categoryId: string;
+    publisher: string;
+    publishedYear: string;
+    isbn: string;
+    language: string;
+    description: string;
+  } | null>(null);
 
   useEffect(() => {
     if (book && bulkLocation === null) {
@@ -51,6 +104,46 @@ export default function SachDetailScreen() {
       setInitialBulkLocation(loc);
     }
   }, [book, bulkLocation]);
+
+  useEffect(() => {
+    if (book && !form) {
+      setForm({
+        title: book.title,
+        authorId: book.authorId,
+        categoryId: book.categoryId,
+        publisher: book.publisher ?? "",
+        publishedYear: book.publishedYear ? String(book.publishedYear) : "",
+        isbn: book.isbn ?? "",
+        language: book.language ?? "",
+        description: book.description ?? "",
+      });
+    }
+  }, [book, form]);
+
+  function updateForm<K extends keyof NonNullable<typeof form>>(key: K, value: string) {
+    setForm((f) => (f ? { ...f, [key]: value } : f));
+  }
+
+  async function handleSaveBookInfo() {
+    if (!form) return;
+    setError(null);
+    setInfo(null);
+    try {
+      await updateBook.mutateAsync({
+        title: form.title,
+        authorId: form.authorId,
+        categoryId: form.categoryId,
+        publisher: form.publisher || undefined,
+        publishedYear: form.publishedYear ? Number(form.publishedYear) : undefined,
+        isbn: form.isbn || undefined,
+        language: form.language || undefined,
+        description: form.description || undefined,
+      });
+      setInfo(`${vi.common.save} ✓`);
+    } catch (err) {
+      setError(extractMessage(err, vi.common.error));
+    }
+  }
 
   function extractMessage(err: unknown, fallback: string): string {
     if (err instanceof ApiError) {
@@ -184,7 +277,7 @@ export default function SachDetailScreen() {
     ]);
   }
 
-  if (isLoading || !book) {
+  if (isLoading || !book || !form) {
     return (
       <View style={{ flex: 1, paddingTop: 80, backgroundColor: "#f8fafc" }}>
         <Text style={{ textAlign: "center", color: "#94a3b8" }}>{vi.common.loading}</Text>
@@ -264,9 +357,101 @@ export default function SachDetailScreen() {
         )}
       </View>
 
-      {book.description ? (
-        <Text style={{ color: "#475569", marginTop: 12 }}>{book.description}</Text>
-      ) : null}
+      {error && (
+        <Text style={{ color: "#b91c1c", backgroundColor: "#fef2f2", padding: 10, borderRadius: 8, marginTop: 12 }}>
+          {error}
+        </Text>
+      )}
+      {info && (
+        <Text style={{ color: "#047857", backgroundColor: "#ecfdf5", padding: 10, borderRadius: 8, marginTop: 12 }}>
+          {info}
+        </Text>
+      )}
+
+      {isStaff ? (
+        <View style={{ marginTop: 16 }}>
+          <Text style={{ fontSize: 15, fontWeight: "600", color: "#1e293b", marginBottom: 10 }}>
+            {vi.book.editBook}
+          </Text>
+
+          <Field label={vi.book.title} value={form.title} onChangeText={(v) => updateForm("title", v)} />
+
+          <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginBottom: 4 }}>{vi.book.author}</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+            {authors?.map((author) => (
+              <Pressable
+                key={author.id}
+                onPress={() => updateForm("authorId", author.id)}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                  marginRight: 8,
+                  backgroundColor: form.authorId === author.id ? "#0f172a" : "#e2e8f0",
+                }}
+              >
+                <Text style={{ color: form.authorId === author.id ? "white" : "#334155", fontSize: 12 }}>
+                  {author.name}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginBottom: 4 }}>
+            {vi.book.category}
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+            {categories?.map((cat) => (
+              <Pressable
+                key={cat.id}
+                onPress={() => updateForm("categoryId", cat.id)}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 999,
+                  marginRight: 8,
+                  backgroundColor: form.categoryId === cat.id ? "#0f172a" : "#e2e8f0",
+                }}
+              >
+                <Text style={{ color: form.categoryId === cat.id ? "white" : "#334155", fontSize: 12 }}>
+                  {cat.name}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          <Field label={vi.book.publisher} value={form.publisher} onChangeText={(v) => updateForm("publisher", v)} />
+          <Field
+            label={vi.book.publishedYear}
+            value={form.publishedYear}
+            onChangeText={(v) => updateForm("publishedYear", v)}
+            keyboardType="numeric"
+          />
+          <Field label={vi.book.isbn} value={form.isbn} onChangeText={(v) => updateForm("isbn", v)} />
+          <Field label={vi.book.language} value={form.language} onChangeText={(v) => updateForm("language", v)} />
+          <Field
+            label={vi.book.description}
+            value={form.description}
+            onChangeText={(v) => updateForm("description", v)}
+            multiline
+          />
+
+          <Pressable
+            onPress={handleSaveBookInfo}
+            disabled={updateBook.isPending}
+            style={{
+              backgroundColor: "#0f172a",
+              padding: 12,
+              borderRadius: 8,
+              opacity: updateBook.isPending ? 0.6 : 1,
+            }}
+          >
+            <Text style={{ color: "white", textAlign: "center", fontWeight: "600" }}>{vi.common.save}</Text>
+          </Pressable>
+        </View>
+      ) : (
+        book.description && <Text style={{ color: "#475569", marginTop: 12 }}>{book.description}</Text>
+      )}
 
       {isStaff && book.copies.length > 0 && (
         <View style={{ marginTop: 14 }}>
@@ -305,12 +490,6 @@ export default function SachDetailScreen() {
             </Pressable>
           </View>
         </View>
-      )}
-
-      {error && (
-        <Text style={{ color: "#b91c1c", backgroundColor: "#fef2f2", padding: 10, borderRadius: 8, marginTop: 12 }}>
-          {error}
-        </Text>
       )}
 
       <View style={{ marginTop: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>

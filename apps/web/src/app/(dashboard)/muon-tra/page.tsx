@@ -98,10 +98,10 @@ function PatronPicker({
             <img
               src={resolveAssetUrl(patron.avatarUrl) ?? undefined}
               alt={patron.fullName}
-              className="h-12 w-12 rounded-full border border-emerald-200 object-cover"
+              className="aspect-[2/3] w-12 rounded-md border border-emerald-200 object-cover"
             />
           ) : (
-            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-emerald-200 bg-white text-sm font-semibold text-emerald-700">
+            <div className="flex aspect-[2/3] w-12 items-center justify-center rounded-md border border-emerald-200 bg-white text-sm font-semibold text-emerald-700">
               {patron.fullName.charAt(0).toUpperCase()}
             </div>
           )}

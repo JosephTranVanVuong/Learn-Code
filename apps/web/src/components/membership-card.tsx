@@ -35,10 +35,10 @@ export function MembershipCard({ patron }: { patron: Patron }) {
           <img
             src={resolveAssetUrl(patron.avatarUrl) ?? undefined}
             alt={patron.fullName}
-            className="h-16 w-16 shrink-0 rounded-full border border-slate-200 object-cover"
+            className="aspect-[2/3] w-16 shrink-0 rounded-md border border-slate-200 object-cover"
           />
         ) : (
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50 text-lg font-semibold text-slate-400">
+          <div className="flex aspect-[2/3] w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-slate-50 text-lg font-semibold text-slate-400">
             {patron.fullName.charAt(0).toUpperCase()}
           </div>
         )}

@@ -281,10 +281,10 @@ export default function ChiTietChungSinhPage() {
               <img
                 src={resolveAssetUrl(patron.avatarUrl) ?? undefined}
                 alt={patron.fullName}
-                className="h-32 w-32 rounded-full border border-slate-200 object-cover"
+                className="aspect-[2/3] w-32 rounded-md border border-slate-200 object-cover"
               />
             ) : (
-              <div className="flex h-32 w-32 items-center justify-center rounded-full border border-dashed border-slate-300 bg-slate-50 text-center text-xs text-slate-400">
+              <div className="flex aspect-[2/3] w-32 items-center justify-center rounded-md border border-dashed border-slate-300 bg-slate-50 text-center text-xs text-slate-400">
                 {vi.patron.noAvatar}
               </div>
             )}

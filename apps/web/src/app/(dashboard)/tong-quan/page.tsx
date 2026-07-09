@@ -15,7 +15,9 @@ import {
 } from "lucide-react";
 import { ApiError, STAFF_ROLES, vi } from "@thuvien/shared";
 import { useAuth } from "@/lib/auth-context";
-import { useMyLoans } from "@/hooks/use-patrons";
+import { resolveAssetUrl } from "@/lib/asset-url";
+import { useMyLoans, usePatron } from "@/hooks/use-patrons";
+import { usePatronTypes } from "@/hooks/use-patron-types";
 import { useMyFines } from "@/hooks/use-fines";
 import { useOverdueSummary, useReportsOverview } from "@/hooks/use-reports";
 import { useChangePassword } from "@/hooks/use-change-password";
@@ -73,7 +75,20 @@ export default function TongQuanPage() {
   const { data: myFines } = useMyFines();
   const { data: overview } = useReportsOverview();
   const { data: overdue } = useOverdueSummary();
+  const { data: patron } = usePatron(!isStaff ? user?.id : undefined);
+  const { data: patronTypes } = usePatronTypes();
   const changePassword = useChangePassword();
+
+  const activeLoans = (myLoans ?? []).filter((l) => l.status !== "RETURNED");
+  const overdueLoans = activeLoans.filter((l) => l.status === "OVERDUE");
+  const unpaidFines = (myFines ?? []).filter((f) => f.status === "UNPAID");
+  const totalUnpaidFines = unpaidFines.reduce((sum, f) => sum + f.amount, 0);
+  const patronType = patronTypes?.find((t) => t.id === patron?.patronTypeId) ?? patronTypes?.find((t) => t.isDefault);
+  const sortedLoans = [...activeLoans].sort((a, b) => {
+    if (a.status === "OVERDUE" && b.status !== "OVERDUE") return -1;
+    if (b.status === "OVERDUE" && a.status !== "OVERDUE") return 1;
+    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+  });
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -117,21 +132,44 @@ export default function TongQuanPage() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-lg font-semibold text-[#0f1c3a]">{vi.nav.dashboard}</h1>
-          <p className="mt-1 text-sm text-slate-500">
-            Xin chào, <span className="font-medium text-slate-700">{user?.fullName}</span>
-            {" · "}
-            {user && vi.roles[user.role]}
-          </p>
+      {isStaff ? (
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-lg font-semibold text-[#0f1c3a]">{vi.nav.dashboard}</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Xin chào, <span className="font-medium text-slate-700">{user?.fullName}</span>
+              {" · "}
+              {user && vi.roles[user.role]}
+            </p>
+          </div>
         </div>
-        {!isStaff && (
-          <Button icon={KeyRound} variant="secondary" size="sm" onClick={openPasswordModal}>
+      ) : (
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-[#0f1c3a] p-5">
+          <div className="flex items-center gap-4">
+            {patron?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={resolveAssetUrl(patron.avatarUrl) ?? undefined}
+                alt={user?.fullName ?? ""}
+                className="aspect-[2/3] w-14 rounded-md border-2 border-[#c9a24b] object-cover"
+              />
+            ) : (
+              <div className="flex aspect-[2/3] w-14 shrink-0 items-center justify-center rounded-md border-2 border-[#c9a24b] bg-[#1c2f57] text-lg font-bold text-[#c9a24b]">
+                {user?.fullName?.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <div>
+              <p className="text-base font-semibold text-white">{user?.fullName}</p>
+              <p className="mt-0.5 text-xs text-[#c9a24b]">
+                {[patron?.studentCode, patron?.className, patron?.patronTypeName].filter(Boolean).join(" · ")}
+              </p>
+            </div>
+          </div>
+          <Button icon={KeyRound} variant="gold" size="sm" onClick={openPasswordModal}>
             {vi.auth.changePassword}
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       {passwordInfo && (
         <p className="mt-3 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{passwordInfo}</p>
@@ -214,6 +252,35 @@ export default function TongQuanPage() {
         </>
       ) : (
         <>
+          {overdueLoans.length > 0 && (
+            <div className="mt-6 flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 p-4">
+              <AlertTriangle className="h-5 w-5 shrink-0 text-red-600" strokeWidth={1.75} />
+              <p className="text-sm font-semibold text-red-700">
+                Bạn có {overdueLoans.length} sách quá hạn — vui lòng trả sớm để tránh phí phạt tăng thêm
+              </p>
+            </div>
+          )}
+
+          <div className="mt-6 grid grid-cols-3 gap-4">
+            <StatCard
+              icon={ArrowLeftRight}
+              label="Đang mượn"
+              value={patronType ? `${activeLoans.length}/${patronType.maxActiveLoans}` : String(activeLoans.length)}
+            />
+            <StatCard
+              icon={AlertTriangle}
+              label={vi.report.overdueLoans}
+              value={String(overdueLoans.length)}
+              tone={overdueLoans.length > 0 ? "danger" : "default"}
+            />
+            <StatCard
+              icon={CircleDollarSign}
+              label={vi.fine.myFines}
+              value={`${totalUnpaidFines.toLocaleString("vi-VN")}đ`}
+              tone={totalUnpaidFines > 0 ? "danger" : "default"}
+            />
+          </div>
+
           <div className="mt-6">
             <Link
               href="/sach"
@@ -235,35 +302,31 @@ export default function TongQuanPage() {
                 {vi.nav.loans}
               </h2>
               <div className="mt-3 space-y-2">
-                {(myLoans ?? []).filter((l) => l.status !== "RETURNED").length === 0 && (
-                  <p className="text-sm text-slate-400">{vi.loan.noActiveLoans}</p>
-                )}
-                {myLoans
-                  ?.filter((l) => l.status !== "RETURNED")
-                  .map((loan) => (
-                    <div
-                      key={loan.id}
-                      className={`rounded-lg border-l-4 bg-white p-3 shadow-sm ring-1 ring-slate-200 ${
-                        loan.status === "OVERDUE" ? "border-l-red-500" : "border-l-emerald-500"
-                      }`}
-                    >
-                      <p className="font-medium text-slate-800">{loan.book.title}</p>
-                      <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
-                        <span>
-                          {vi.loan.dueDate}: {new Date(loan.dueDate).toLocaleDateString("vi-VN")}
-                        </span>
-                        <span
-                          className={
-                            loan.status === "OVERDUE"
-                              ? "font-semibold text-red-600"
-                              : "font-semibold text-emerald-600"
-                          }
-                        >
-                          {vi.loanStatus[loan.status]}
-                        </span>
-                      </div>
+                {sortedLoans.length === 0 && <p className="text-sm text-slate-400">{vi.loan.noActiveLoans}</p>}
+                {sortedLoans.map((loan) => (
+                  <div
+                    key={loan.id}
+                    className={`rounded-lg border-l-4 bg-white p-3 shadow-sm ring-1 ring-slate-200 ${
+                      loan.status === "OVERDUE" ? "border-l-red-500" : "border-l-emerald-500"
+                    }`}
+                  >
+                    <p className="font-medium text-slate-800">{loan.book.title}</p>
+                    <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
+                      <span>
+                        {vi.loan.dueDate}: {new Date(loan.dueDate).toLocaleDateString("vi-VN")}
+                      </span>
+                      <span
+                        className={
+                          loan.status === "OVERDUE"
+                            ? "font-semibold text-red-600"
+                            : "font-semibold text-emerald-600"
+                        }
+                      >
+                        {vi.loanStatus[loan.status]}
+                      </span>
                     </div>
-                  ))}
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -273,23 +336,14 @@ export default function TongQuanPage() {
                 {vi.fine.myFines}
               </h2>
               <div className="mt-3 space-y-2">
-                {(myFines ?? []).filter((f) => f.status === "UNPAID").length === 0 && (
-                  <p className="text-sm text-slate-400">{vi.fine.noFines}</p>
-                )}
-                {myFines
-                  ?.filter((f) => f.status === "UNPAID")
-                  .map((fine) => (
-                    <div
-                      key={fine.id}
-                      className="rounded-lg border-l-4 border-l-red-500 bg-red-50 p-3 ring-1 ring-red-100"
-                    >
-                      <p className="font-medium text-red-800">{fine.loan.book.title}</p>
-                      <p className="mt-1 text-xs text-red-600">{fine.reason}</p>
-                      <p className="mt-1 font-semibold text-red-800">
-                        {fine.amount.toLocaleString("vi-VN")}đ
-                      </p>
-                    </div>
-                  ))}
+                {unpaidFines.length === 0 && <p className="text-sm text-slate-400">{vi.fine.noFines}</p>}
+                {unpaidFines.map((fine) => (
+                  <div key={fine.id} className="rounded-lg border-l-4 border-l-red-500 bg-red-50 p-3 ring-1 ring-red-100">
+                    <p className="font-medium text-red-800">{fine.loan.book.title}</p>
+                    <p className="mt-1 text-xs text-red-600">{fine.reason}</p>
+                    <p className="mt-1 font-semibold text-red-800">{fine.amount.toLocaleString("vi-VN")}đ</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

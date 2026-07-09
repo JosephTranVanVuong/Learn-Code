@@ -37,7 +37,8 @@
         {
           "cameraPermission": "Ứng dụng cần quyền dùng camera để quét mã vạch thẻ độc giả và mã vạch sách."
         }
-      ]
+      ],
+      "expo-secure-store"
     ]
   }
 }

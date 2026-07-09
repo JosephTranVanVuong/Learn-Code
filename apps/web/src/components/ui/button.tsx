@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
 
-export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "success";
+export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "success" | "gold";
 export type ButtonSize = "sm" | "md";
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
@@ -11,6 +11,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   danger: "text-red-600 hover:bg-red-50",
   ghost: "text-slate-600 hover:bg-slate-100",
   success: "border border-emerald-200 text-emerald-700 hover:bg-emerald-50",
+  gold: "bg-[#c9a24b] text-[#0f1c3a] hover:bg-[#d9b563]",
 };
 
 const SIZE_CLASSES: Record<ButtonSize, string> = {

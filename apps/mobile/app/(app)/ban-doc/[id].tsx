@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { ApiError, DESTRUCTIVE_ROLES, vi } from "@thuvien/shared";
 import { useAuth } from "../../../lib/auth-context";
 import { resolveAssetUrl } from "../../../lib/asset-url";
+import { colors } from "../../../lib/theme";
 import {
   useDeactivatePatron,
   useDeletePatronPermanently,
@@ -17,10 +20,32 @@ import {
 } from "../../../hooks/use-patrons";
 import { useFines, usePayFine, useWaiveFine } from "../../../hooks/use-fines";
 import { usePatronTypes } from "../../../hooks/use-patron-types";
+import { Card } from "../../../components/ui/Card";
+import { Badge } from "../../../components/ui/Badge";
+import { Button } from "../../../components/ui/Button";
+
+function inputStyle(extra?: object) {
+  return {
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: "#ffffff",
+    fontSize: 14,
+    ...extra,
+  };
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Text style={{ fontSize: 13, fontWeight: "600", color: colors.textSecondary, marginBottom: 4 }}>{children}</Text>
+  );
+}
 
 export default function ChiTietChungSinhScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const canDelete = user ? DESTRUCTIVE_ROLES.includes(user.role) : false;
   const { data: patron, isLoading } = usePatron(id);
@@ -40,10 +65,15 @@ export default function ChiTietChungSinhScreen() {
     fullName: string;
     className: string;
     phone: string;
+    email: string;
     patronTypeId: string;
   } | null>(null);
-  const [newPassword, setNewPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   useEffect(() => {
     if (patron && !form) {
@@ -51,6 +81,7 @@ export default function ChiTietChungSinhScreen() {
         fullName: patron.fullName,
         className: patron.className ?? "",
         phone: patron.phone ?? "",
+        email: patron.email ?? "",
         patronTypeId: patron.patronTypeId ?? "",
       });
     }
@@ -67,29 +98,39 @@ export default function ChiTietChungSinhScreen() {
   async function handleSave() {
     if (!form) return;
     setError(null);
+    setInfo(null);
     try {
       await updatePatron.mutateAsync({
         fullName: form.fullName,
         className: form.className || undefined,
         phone: form.phone || undefined,
+        email: form.email || undefined,
         patronTypeId: form.patronTypeId || undefined,
       });
+      setInfo(`${vi.common.save} ✓`);
     } catch (err) {
       setError(extractMessage(err, vi.common.error));
     }
   }
 
+  function openPasswordModal() {
+    setNewPassword("");
+    setPasswordError(null);
+    setShowPasswordModal(true);
+  }
+
   async function handleResetPassword() {
-    setError(null);
+    setPasswordError(null);
     if (newPassword.length < 6) {
-      setError("Mật khẩu tối thiểu 6 ký tự");
+      setPasswordError("Mật khẩu tối thiểu 6 ký tự");
       return;
     }
     try {
       await resetPassword.mutateAsync({ password: newPassword });
-      setNewPassword("");
+      setShowPasswordModal(false);
+      setInfo(`${vi.patron.resetPassword} ✓`);
     } catch (err) {
-      setError(extractMessage(err, vi.common.error));
+      setPasswordError(extractMessage(err, vi.common.error));
     }
   }
 
@@ -231,269 +272,284 @@ export default function ChiTietChungSinhScreen() {
 
   if (isLoading || !form || !patron) {
     return (
-      <View style={{ flex: 1, paddingTop: 80, backgroundColor: "#f8fafc" }}>
-        <Text style={{ textAlign: "center", color: "#94a3b8" }}>{vi.common.loading}</Text>
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ color: colors.textMuted }}>{vi.common.loading}</Text>
       </View>
     );
   }
 
+  const patronType = patronTypes?.find((t) => t.id === patron.patronTypeId);
+
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#f8fafc", paddingTop: 56 }} contentContainerStyle={{ padding: 20 }}>
-      <Pressable onPress={() => router.back()}>
-        <Text style={{ color: "#64748b", marginBottom: 12 }}>&larr; {vi.common.back}</Text>
-      </Pressable>
-
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <Text style={{ fontSize: 18, fontWeight: "700", color: "#1e293b" }}>{patron.studentCode}</Text>
-          {!patron.isActive && (
-            <View style={{ backgroundColor: "#f1f5f9", paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 }}>
-              <Text style={{ fontSize: 11, color: "#64748b" }}>{vi.patron.inactive}</Text>
-            </View>
-          )}
-        </View>
-        {patron.isActive ? (
-          canDelete && (
-            <Pressable onPress={handleDeactivate}>
-              <Text style={{ color: "#dc2626", fontWeight: "600" }}>{vi.patron.deactivate}</Text>
-            </Pressable>
-          )
-        ) : (
-          <Pressable onPress={handleReactivate}>
-            <Text style={{ color: "#047857", fontWeight: "600" }}>{vi.patron.reactivate}</Text>
-          </Pressable>
-        )}
-      </View>
-
-      {canDelete && (
-        <Pressable onPress={handleDeletePermanently} style={{ marginTop: 8, alignSelf: "flex-end" }}>
-          <Text style={{ color: "#dc2626", fontWeight: "600", fontSize: 13 }}>{vi.patron.deletePermanently}</Text>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ paddingBottom: 32 }}>
+      <View style={{ backgroundColor: colors.navy, paddingTop: insets.top + 12, paddingBottom: 16, paddingHorizontal: 16 }}>
+        <Pressable onPress={() => router.back()} style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 12 }}>
+          <Ionicons name="chevron-back" size={20} color="#ffffff" />
+          <Text style={{ color: "#ffffff", fontSize: 14 }}>{vi.common.back}</Text>
         </Pressable>
-      )}
-
-      {error && (
-        <Text style={{ color: "#b91c1c", backgroundColor: "#fef2f2", padding: 10, borderRadius: 8, marginTop: 12 }}>
-          {error}
-        </Text>
-      )}
-
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 14, marginTop: 14 }}>
-        {patron.avatarUrl ? (
-          <Image
-            source={{ uri: resolveAssetUrl(patron.avatarUrl) ?? undefined }}
-            style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: "#e2e8f0" }}
-          />
-        ) : (
-          <View
-            style={{
-              width: 96,
-              height: 96,
-              borderRadius: 48,
-              borderWidth: 1,
-              borderStyle: "dashed",
-              borderColor: "#cbd5e1",
-              backgroundColor: "#f8fafc",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 6,
-            }}
-          >
-            <Text style={{ fontSize: 11, color: "#94a3b8", textAlign: "center" }}>{vi.patron.noAvatar}</Text>
-          </View>
-        )}
-        <View style={{ gap: 8 }}>
-          <Pressable
-            onPress={handlePickAvatar}
-            disabled={uploadAvatar.isPending}
-            style={{ backgroundColor: "#0f172a", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
-          >
-            {uploadAvatar.isPending ? (
-              <ActivityIndicator color="white" size="small" />
-            ) : (
-              <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }}>
-                {patron.avatarUrl ? vi.patron.changeAvatar : vi.patron.uploadAvatar}
-              </Text>
-            )}
-          </Pressable>
-          {patron.avatarUrl && canDelete && (
-            <Pressable
-              onPress={handleRemoveAvatar}
-              disabled={removeAvatar.isPending}
-              style={{ borderWidth: 1, borderColor: "#cbd5e1", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
-            >
-              <Text style={{ color: "#dc2626", fontSize: 12, fontWeight: "600" }}>{vi.patron.removeAvatar}</Text>
-            </Pressable>
-          )}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          <Text style={{ fontSize: 18, fontWeight: "700", color: "#ffffff" }}>{patron.studentCode}</Text>
+          {!patron.isActive && <Badge tone="neutral">{vi.patron.inactive}</Badge>}
         </View>
       </View>
 
-      <View style={{ marginTop: 14 }}>
-        <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginBottom: 4 }}>{vi.patron.fullName}</Text>
-        <TextInput
-          value={form.fullName}
-          onChangeText={(v) => setForm({ ...form, fullName: v })}
-          style={{ borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 8, padding: 10, backgroundColor: "white", marginBottom: 12 }}
-        />
-        <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginBottom: 4 }}>{vi.patron.className}</Text>
-        <TextInput
-          value={form.className}
-          onChangeText={(v) => setForm({ ...form, className: v })}
-          style={{ borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 8, padding: 10, backgroundColor: "white", marginBottom: 12 }}
-        />
-        <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginBottom: 4 }}>{vi.patron.patronType}</Text>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
-          <Pressable
-            onPress={() => setForm({ ...form, patronTypeId: "" })}
-            style={{
-              paddingHorizontal: 12,
-              paddingVertical: 8,
-              borderRadius: 999,
-              backgroundColor: form.patronTypeId === "" ? "#0f172a" : "#e2e8f0",
-            }}
-          >
-            <Text style={{ color: form.patronTypeId === "" ? "white" : "#334155", fontSize: 12 }}>
-              {vi.patron.noPatronType}
-            </Text>
-          </Pressable>
-          {patronTypes?.map((t) => (
-            <Pressable
-              key={t.id}
-              onPress={() => setForm({ ...form, patronTypeId: t.id })}
+      <View style={{ padding: 16, gap: 12 }}>
+        {error && (
+          <Text style={{ color: colors.dangerText, backgroundColor: colors.dangerBg, padding: 10, borderRadius: 8, fontSize: 13 }}>
+            {error}
+          </Text>
+        )}
+        {info && (
+          <Text style={{ color: colors.successText, backgroundColor: colors.successBg, padding: 10, borderRadius: 8, fontSize: 13 }}>
+            {info}
+          </Text>
+        )}
+
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+          <Button variant="secondary" size="sm" icon="key-outline" onPress={openPasswordModal}>
+            {vi.patron.resetPassword}
+          </Button>
+          {patron.isActive ? (
+            canDelete && (
+              <Button variant="danger" size="sm" icon="person-remove-outline" onPress={handleDeactivate}>
+                {vi.patron.deactivate}
+              </Button>
+            )
+          ) : (
+            <Button
+              variant="success"
+              size="sm"
+              icon="person-add-outline"
+              onPress={handleReactivate}
+              loading={updatePatron.isPending}
+            >
+              {vi.patron.reactivate}
+            </Button>
+          )}
+          {canDelete && (
+            <Button
+              variant="danger"
+              size="sm"
+              icon="trash-outline"
+              onPress={handleDeletePermanently}
+              loading={deletePatronPermanently.isPending}
+            >
+              {vi.patron.deletePermanently}
+            </Button>
+          )}
+        </View>
+
+        <Card style={{ alignItems: "center" }}>
+          {patron.avatarUrl ? (
+            <Image
+              source={{ uri: resolveAssetUrl(patron.avatarUrl) ?? undefined }}
+              style={{ width: 84, height: 126, borderRadius: 8, backgroundColor: colors.border }}
+            />
+          ) : (
+            <View
               style={{
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                borderRadius: 999,
-                backgroundColor: form.patronTypeId === t.id ? "#0f172a" : "#e2e8f0",
+                width: 84,
+                height: 126,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderStyle: "dashed",
+                borderColor: "#cbd5e1",
+                backgroundColor: colors.background,
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 6,
               }}
             >
-              <Text style={{ color: form.patronTypeId === t.id ? "white" : "#334155", fontSize: 12 }}>
-                {t.name}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginBottom: 4 }}>{vi.patron.phone}</Text>
-        <TextInput
-          value={form.phone}
-          onChangeText={(v) => setForm({ ...form, phone: v })}
-          style={{ borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 8, padding: 10, backgroundColor: "white" }}
-        />
-        <Pressable
-          onPress={handleSave}
-          style={{ backgroundColor: "#0f172a", padding: 12, borderRadius: 8, marginTop: 14 }}
-        >
-          <Text style={{ color: "white", textAlign: "center", fontWeight: "600" }}>{vi.common.save}</Text>
-        </Pressable>
-      </View>
-
-      <View style={{ marginTop: 20, flexDirection: "row", alignItems: "flex-end", gap: 8 }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginBottom: 4 }}>
-            {vi.patron.resetPassword}
-          </Text>
-          <TextInput
-            value={newPassword}
-            onChangeText={setNewPassword}
-            style={{ borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 8, padding: 10, backgroundColor: "white" }}
-          />
-        </View>
-        <Pressable onPress={handleResetPassword} style={{ backgroundColor: "#0f172a", padding: 12, borderRadius: 8 }}>
-          <Text style={{ color: "white", fontWeight: "600" }}>{vi.common.save}</Text>
-        </Pressable>
-      </View>
-
-      <View style={{ marginTop: 24 }}>
-        <Text style={{ fontSize: 15, fontWeight: "600", color: "#1e293b", marginBottom: 8 }}>
-          {vi.patron.loanHistory}
-        </Text>
-        {(!loans || loans.length === 0) && (
-          <Text style={{ color: "#94a3b8" }}>{vi.loan.noActiveLoans}</Text>
-        )}
-        {loans?.map((loan, index) => (
-          <View
-            key={loan.id}
-            style={{
-              borderWidth: 1,
-              borderColor: "#e2e8f0",
-              borderRadius: 8,
-              padding: 10,
-              marginBottom: 8,
-              backgroundColor: "white",
-            }}
-          >
-            <Text style={{ fontWeight: "600", color: "#1e293b" }}>
-              <Text style={{ color: "#94a3b8" }}>{index + 1}. </Text>
-              {loan.book.title}
-            </Text>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
-              <Text style={{ fontSize: 12, color: "#94a3b8" }}>
-                {vi.loan.dueDate}: {new Date(loan.dueDate).toLocaleDateString("vi-VN")}
-              </Text>
-              <Text
-                style={{
-                  fontSize: 11,
-                  fontWeight: "600",
-                  color:
-                    loan.status === "OVERDUE" ? "#dc2626" : loan.status === "RETURNED" ? "#64748b" : "#047857",
-                }}
-              >
-                {vi.loanStatus[loan.status]}
-              </Text>
+              <Text style={{ fontSize: 11, color: colors.textMuted, textAlign: "center" }}>{vi.patron.noAvatar}</Text>
             </View>
+          )}
+          <Text style={{ marginTop: 10, fontWeight: "700", color: colors.textPrimary }}>{patron.fullName}</Text>
+          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+            {patron.className || vi.patron.noPatronType}
+            {patronType ? ` · ${patronType.name}` : ""}
+          </Text>
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+            <Button variant="secondary" size="sm" icon="camera-outline" onPress={handlePickAvatar} loading={uploadAvatar.isPending}>
+              {patron.avatarUrl ? vi.patron.changeAvatar : vi.patron.uploadAvatar}
+            </Button>
+            {patron.avatarUrl && canDelete && (
+              <Button variant="danger" size="sm" icon="trash-outline" onPress={handleRemoveAvatar} loading={removeAvatar.isPending}>
+                {vi.patron.removeAvatar}
+              </Button>
+            )}
           </View>
-        ))}
-      </View>
+        </Card>
 
-      <View style={{ marginTop: 24, marginBottom: 20 }}>
-        <Text style={{ fontSize: 15, fontWeight: "600", color: "#1e293b", marginBottom: 8 }}>
-          {vi.fine.title}
-        </Text>
-        {(!fines || fines.items.length === 0) && (
-          <Text style={{ color: "#94a3b8" }}>{vi.fine.noFines}</Text>
-        )}
-        {fines?.items.map((fine, index) => (
-          <View
-            key={fine.id}
-            style={{
-              borderWidth: 1,
-              borderColor: "#e2e8f0",
-              borderRadius: 8,
-              padding: 10,
-              marginBottom: 8,
-              backgroundColor: "white",
-            }}
-          >
-            <Text style={{ fontWeight: "600", color: "#1e293b" }}>
-              <Text style={{ color: "#94a3b8" }}>{index + 1}. </Text>
-              {fine.loan.book.title}
-            </Text>
-            <Text style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{fine.reason}</Text>
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
-              <Text style={{ fontWeight: "700", color: "#1e293b" }}>{fine.amount.toLocaleString("vi-VN")}đ</Text>
-              {fine.status === "UNPAID" ? (
-                <View style={{ flexDirection: "row", gap: 14 }}>
-                  <Pressable onPress={() => handleWaiveFine(fine.id)}>
-                    <Text style={{ color: "#64748b", fontSize: 13 }}>{vi.fine.waive}</Text>
-                  </Pressable>
-                  <Pressable onPress={() => handlePayFine(fine.id)}>
-                    <Text style={{ color: "#0f172a", fontWeight: "600", fontSize: 13 }}>{vi.fine.pay}</Text>
-                  </Pressable>
-                </View>
-              ) : (
-                <Text
+        <Card style={{ gap: 10 }}>
+          <Text style={{ fontSize: 13, fontWeight: "700", color: colors.navy }}>{vi.patron.editPatron}</Text>
+
+          <View>
+            <FieldLabel>{vi.patron.fullName}</FieldLabel>
+            <TextInput value={form.fullName} onChangeText={(v) => setForm({ ...form, fullName: v })} style={inputStyle()} />
+          </View>
+
+          <View>
+            <FieldLabel>{vi.patron.className}</FieldLabel>
+            <TextInput value={form.className} onChangeText={(v) => setForm({ ...form, className: v })} style={inputStyle()} />
+          </View>
+
+          <View>
+            <FieldLabel>{vi.patron.patronType}</FieldLabel>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <Pressable
+                  onPress={() => setForm({ ...form, patronTypeId: "" })}
                   style={{
-                    fontSize: 11,
-                    fontWeight: "600",
-                    color: fine.status === "PAID" ? "#047857" : "#64748b",
+                    paddingHorizontal: 12,
+                    paddingVertical: 7,
+                    borderRadius: 999,
+                    backgroundColor: form.patronTypeId === "" ? colors.navy : "#e2e8f0",
                   }}
                 >
-                  {vi.fineStatus[fine.status]}
-                </Text>
+                  <Text style={{ color: form.patronTypeId === "" ? "#ffffff" : colors.textPrimary, fontSize: 12, fontWeight: "600" }}>
+                    {vi.patron.noPatronType}
+                  </Text>
+                </Pressable>
+                {patronTypes?.map((t) => (
+                  <Pressable
+                    key={t.id}
+                    onPress={() => setForm({ ...form, patronTypeId: t.id })}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                      borderRadius: 999,
+                      backgroundColor: form.patronTypeId === t.id ? colors.navy : "#e2e8f0",
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: form.patronTypeId === t.id ? "#ffffff" : colors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: "600",
+                      }}
+                    >
+                      {t.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
+          <View>
+            <FieldLabel>{vi.patron.phone}</FieldLabel>
+            <TextInput
+              value={form.phone}
+              onChangeText={(v) => setForm({ ...form, phone: v })}
+              keyboardType="phone-pad"
+              style={inputStyle()}
+            />
+          </View>
+
+          <View>
+            <FieldLabel>{vi.patron.email}</FieldLabel>
+            <TextInput
+              value={form.email}
+              onChangeText={(v) => setForm({ ...form, email: v })}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              style={inputStyle()}
+            />
+          </View>
+
+          <Button onPress={handleSave} loading={updatePatron.isPending}>
+            {vi.common.save}
+          </Button>
+        </Card>
+
+        <Text style={{ fontSize: 15, fontWeight: "700", color: colors.navy, marginTop: 4 }}>{vi.patron.loanHistory}</Text>
+        {(!loans || loans.length === 0) && (
+          <Card>
+            <Text style={{ color: colors.textMuted, textAlign: "center", fontSize: 13 }}>{vi.loan.noActiveLoans}</Text>
+          </Card>
+        )}
+        {loans?.map((loan) => (
+          <Card key={loan.id}>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+              <Text style={{ fontWeight: "700", color: colors.textPrimary, flex: 1 }}>{loan.book.title}</Text>
+              <Badge tone={loan.status === "OVERDUE" ? "danger" : loan.status === "RETURNED" ? "neutral" : "success"}>
+                {vi.loanStatus[loan.status]}
+              </Badge>
+            </View>
+            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>
+              {vi.loan.dueDate}: {new Date(loan.dueDate).toLocaleDateString("vi-VN")}
+            </Text>
+          </Card>
+        ))}
+
+        <Text style={{ fontSize: 15, fontWeight: "700", color: colors.navy, marginTop: 8 }}>{vi.fine.title}</Text>
+        {(!fines || fines.items.length === 0) && (
+          <Card>
+            <Text style={{ color: colors.textMuted, textAlign: "center", fontSize: 13 }}>{vi.fine.noFines}</Text>
+          </Card>
+        )}
+        {fines?.items.map((fine) => (
+          <Card key={fine.id}>
+            <Text style={{ fontWeight: "700", color: colors.textPrimary }}>{fine.loan.book.title}</Text>
+            <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>{fine.reason}</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+              <Text style={{ fontWeight: "800", color: colors.textPrimary }}>{fine.amount.toLocaleString("vi-VN")}đ</Text>
+              {fine.status === "UNPAID" ? (
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  <Button variant="ghost" size="sm" onPress={() => handleWaiveFine(fine.id)}>
+                    {vi.fine.waive}
+                  </Button>
+                  <Button size="sm" icon="checkmark-circle-outline" onPress={() => handlePayFine(fine.id)}>
+                    {vi.fine.pay}
+                  </Button>
+                </View>
+              ) : (
+                <Badge tone={fine.status === "PAID" ? "success" : "neutral"}>{vi.fineStatus[fine.status]}</Badge>
               )}
             </View>
-          </View>
+          </Card>
         ))}
       </View>
+
+      <Modal visible={showPasswordModal} transparent animationType="fade" onRequestClose={() => setShowPasswordModal(false)}>
+        <View style={{ flex: 1, backgroundColor: "rgba(15,28,58,0.5)", justifyContent: "center", padding: 20 }}>
+          <View style={{ backgroundColor: "white", borderRadius: 12, padding: 20 }}>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.navy }}>{vi.patron.resetPassword}</Text>
+            <Text style={{ fontSize: 13, fontWeight: "500", color: colors.textSecondary, marginTop: 16, marginBottom: 4 }}>
+              {vi.patron.password}
+            </Text>
+            <TextInput
+              autoFocus
+              value={newPassword}
+              onChangeText={setNewPassword}
+              placeholder={vi.patron.password}
+              style={inputStyle()}
+            />
+            {passwordError && (
+              <Text
+                style={{
+                  color: colors.dangerText,
+                  backgroundColor: colors.dangerBg,
+                  padding: 10,
+                  borderRadius: 8,
+                  marginTop: 12,
+                  fontSize: 13,
+                }}
+              >
+                {passwordError}
+              </Text>
+            )}
+            <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>
+              <Button variant="ghost" size="sm" onPress={() => setShowPasswordModal(false)}>
+                {vi.common.cancel}
+              </Button>
+              <Button icon="key-outline" size="sm" onPress={handleResetPassword} loading={resetPassword.isPending}>
+                {vi.common.save}
+              </Button>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }

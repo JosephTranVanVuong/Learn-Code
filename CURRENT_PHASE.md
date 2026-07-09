@@ -1,6 +1,6 @@
 # CURRENT_PHASE.md — Trạng thái tính năng hiện tại
 
-Cập nhật lần cuối: 2026-07-07
+Cập nhật lần cuối: 2026-07-08
 
 ## Đã hoàn thành (nền tảng, các phiên trước)
 
@@ -12,26 +12,33 @@ Cập nhật lần cuối: 2026-07-07
 - Cài đặt hệ thống (thông tin thư viện, mức phạt/ngày, tiền tố mã vạch, bật/tắt gửi email tự động), quản lý người dùng nhân viên (QUAN_TRI/THU_THU/CONG_TAC_VIEN).
 - Web và mobile có chức năng tương đương nhau, dùng chung 1 API.
 
-## Đã hoàn thành trong phiên gần nhất (arc này)
+## Đã hoàn thành trong phiên gần đây (arc "Chủng sinh→Độc giả" đến "Tra cứu sách")
 
-1. **Dữ liệu test:** sinh 25 thể loại, 25 tác giả, 25 sách, 22 độc giả, 20 lượt mượn, 20 khoản phạt qua `seed-test-data.ts` để kiểm tra chức năng xóa dữ liệu.
-2. **Đổi tên hiển thị "Chủng sinh" → "Độc giả"** trên toàn bộ UI (menu, nhãn, thông báo lỗi) — **chỉ đổi text**, giữ nguyên mọi định danh code (model `Patron`, role `"CHUNG_SINH"`, route `ban-doc`). Ngoại lệ giữ nguyên: `vi.settings.patronTypesDesc`.
-3. **Xóa vĩnh viễn người dùng** — nút cạnh "Vô hiệu hóa" trên trang Sửa thông tin người dùng; chặn tự xóa chính mình (giống logic đã có với độc giả).
-4. **Giỏ hàng mượn sách** — cho phép quét/chọn nhiều sách rồi xác nhận mượn hàng loạt trong 1 lần, thay vì lặp lại việc nhập tên độc giả cho từng cuốn. Backend: endpoint `POST /loans/batch`, atomic (`$transaction`), kiểm tra `maxActiveLoans` cho toàn bộ giỏ trước khi ghi, tự động loại các bản sao không còn sẵn khỏi giỏ nếu bị giành mất giữa lúc thao tác. Web + mobile đều có UI giỏ hàng.
-5. **Thiết kế lại trang "Sửa thông tin độc giả"** — bố cục full trang 2 cột (avatar trái, form phải), nút "Đổi mật khẩu" cạnh "In thẻ" mở qua Modal riêng.
-6. **Thiết kế lại trang "Sửa thông tin người dùng"** + **thêm tính năng upload avatar cho người dùng** (trước đây chỉ độc giả có avatar — đã thêm migration `avatarUrl` cho model `User`). Nút "Đổi mật khẩu" cạnh "Vô hiệu hóa" mở qua Modal.
-7. **Đổi mật khẩu tự phục vụ cho độc giả** trên trang Tổng quan (góc phải trên) — wiring lại `changePasswordSchema` (tồn tại sẵn trong `packages/shared` nhưng chưa từng được dùng ở đâu) thành endpoint `POST /auth/change-password` + Modal trên web và mobile.
-8. **Thiết kế lại trang "Tra cứu sách" công khai** theo chuẩn OPAC quốc tế:
-   - `/tra-cuu`: lưới bìa sách responsive (2→5 cột), badge tình trạng còn sách, hover-lift, bộ lọc thể loại + "chỉ hiện sách còn sẵn", đếm số kết quả.
-   - `/tra-cuu/[id]` (**mới**): trang chi tiết công khai riêng (người dùng chọn phương án "Trang riêng" qua AskUserQuestion thay vì modal) — bìa lớn, thông tin đầy đủ (NXB, năm XB, ISBN, ngôn ngữ, vị trí kệ nếu đồng nhất giữa các bản sao), mô tả sách.
-   - Build web pass, cả 2 route curl-verified 200. **Chưa được người dùng xác nhận bằng mắt** (môi trường không có công cụ trình duyệt).
+1. Dữ liệu test số lượng lớn qua `seed-test-data.ts` (25 thể loại/25 tác giả/25 sách/22 độc giả/lượt mượn/phạt).
+2. Đổi tên hiển thị "Chủng sinh" → "Độc giả" toàn UI, giữ nguyên định danh code (model `Patron`, role `"CHUNG_SINH"`, route `ban-doc`).
+3. Xóa vĩnh viễn người dùng (cạnh nút Vô hiệu hóa).
+4. Giỏ hàng mượn sách (batch loan atomic qua `POST /loans/batch`).
+5. Thiết kế lại full trang: "Sửa thông tin độc giả", "Sửa thông tin người dùng" (+ thêm avatar upload cho User — migration `avatarUrl`).
+6. Đổi mật khẩu tự phục vụ cho độc giả trên Tổng quan (`POST /auth/change-password`).
+7. Thiết kế lại "Tra cứu sách" công khai theo chuẩn OPAC: `/tra-cuu` lưới bìa sách, `/tra-cuu/[id]` trang chi tiết riêng.
+
+## Đã hoàn thành trong phiên gần nhất (arc này — 2026-07-08)
+
+1. **"Thêm sách" full trang** — bố cục 2 cột (preview bìa trái, form 3 section phải: Thông tin cơ bản/Thông tin xuất bản/Số lượng & vị trí). **Thêm khả năng upload ảnh bìa ngay lúc tạo sách** (trước đây chỉ upload được sau khi lưu) — tạo sách xong tự động upload ảnh đã chọn trong cùng 1 lần submit. Sau khi lưu, quay về trang danh sách `/sach` (theo yêu cầu chỉnh sửa) thay vì trang sửa sách.
+2. **"Sửa thông tin sách" full trang** — cùng pattern bố cục 2 cột (bìa + upload trái, form 3 section phải), bảng quản lý bản sao full chiều rộng bên dưới.
+3. **Thiết kế lại "Mượn/trả"** theo tư vấn chuẩn quốc tế (OPAC/ILS circulation), người dùng chọn qua `AskUserQuestion`: tách **3 tab** — "Cho mượn" (3 bước: chọn độc giả → chọn sách → giỏ mượn & xác nhận, thẻ tóm tắt độc giả hiện nhất quán dù chọn bằng quét mã hay tìm kiếm), "Trả sách" (quét nhanh 1 cuốn + **giỏ trả nhiều cuốn mới** theo độc giả, tick chọn hàng loạt), "Đang mượn" (bảng + gia hạn, giữ nguyên). Component `PatronPicker` dùng chung giữa 2 tab. Thay toàn bộ `alert()` bằng banner nội tuyến.
+4. **Thiết kế lại "Sao lưu/Khôi phục"** theo tư vấn chuẩn quốc tế, người dùng chọn qua `AskUserQuestion`: **sao lưu tự động hàng ngày** (node-cron 3h sáng, bật/tắt + số bản giữ lại tùy chỉnh trong Cài đặt — model `BackupSettings`), **lịch sử sao lưu** hiển thị mọi bản (thủ công/tự động/an toàn trước thao tác nguy hiểm — trước đây các bản "an toàn" tồn tại ngầm, chưa từng hiển thị) kèm Tải xuống/Khôi phục/Xóa từng bản, nút "Sao lưu ngay", **khôi phục yêu cầu gõ đúng "XÁC NHẬN"** (validate cả client lẫn server). Bố cục full trang 2 cột. Mobile đã làm tương đương.
+5. **Thiết kế lại "Xóa dữ liệu"** theo tư vấn chuẩn quốc tế, người dùng chọn qua `AskUserQuestion`: **cả 4 thẻ xóa theo loại** (Mượn/trả & Phạt, Độc giả, Sách, Thể loại & Tác giả) nay có cùng mức xác nhận chặt như "Xóa tất cả" — gõ cụm từ riêng cho từng loại (vd. `XOA DOC GIA`) + nhập lại mật khẩu, thay vì `confirm()` đơn giản. Thêm **xem trước số lượng sẽ xóa** (`GET /data-management/counts`), nút "Xóa Thể loại & Tác giả" tự vô hiệu hóa nếu còn sách tham chiếu, và **nhật ký xóa dữ liệu mới** (model `DataDeletionLog`, ai/lúc nào/xóa gì/bao nhiêu dòng, hiển thị bảng dưới trang). Mobile đã làm tương đương.
+
+Cả 3 mục 3-5 đều được xác minh an toàn qua API thật (không chạy thử thao tác phá hủy dữ liệu thật) — xem chi tiết cách xác minh trong [HANDOFF.md](HANDOFF.md).
 
 ## Đang chờ / chưa có phản hồi từ người dùng
 
-- Trang "Tra cứu sách" mới thiết kế lại — người dùng chưa xem/phản hồi trực tiếp (chỉ mới xác nhận build + curl).
+- 5 tính năng vừa thiết kế lại (Thêm sách, Sửa sách, Mượn/trả, Sao lưu/Khôi phục, Xóa dữ liệu) — người dùng chưa xem/phản hồi trực tiếp bằng mắt (môi trường không có công cụ trình duyệt để tự xác nhận).
 
 ## Chưa làm (backlog tiềm năng, chưa ai yêu cầu)
 
 - Đặt trước sách (reservation/holds) — đã hoãn sang v2 từ đầu dự án theo kế hoạch gốc, quy mô chủng viện nhỏ nên chưa cần.
 - Deploy lên môi trường ngoài local (đổi `DATABASE_URL`/`provider` sang Postgres) — chưa được yêu cầu.
 - Build APK qua EAS để cài thử điện thoại thật — cấu hình `eas.json` đã có sẵn nhưng chưa build lần nào trong các phiên gần đây.
+- Chọn phạm vi xóa dữ liệu theo bộ lọc (vd. chỉ xóa lượt mượn cũ hơn N năm) — đã cân nhắc khi tư vấn "Xóa dữ liệu" nhưng chưa được yêu cầu, hiện vẫn là xóa toàn bộ theo loại.

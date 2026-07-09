@@ -10,6 +10,7 @@ import { booksApi } from "@/lib/resources";
 import { useBooks } from "@/hooks/use-books";
 import { useCategories } from "@/hooks/use-categories";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { BookGridItem } from "@/components/book-grid-item";
 
 export default function SachPage() {
   const { user } = useAuth();
@@ -102,63 +103,84 @@ export default function SachPage() {
         </label>
       </div>
 
-      <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white">
-        <table className="w-full text-sm">
-          <thead className="border-b-2 border-[#c9a24b] bg-[#f6efdd] text-left text-xs font-semibold uppercase tracking-wide text-[#0f1c3a]">
-            <tr>
-              <th className="px-4 py-2">{vi.common.stt}</th>
-              <th className="px-4 py-2"></th>
-              <th className="px-4 py-2">{vi.book.title}</th>
-              <th className="px-4 py-2">{vi.book.author}</th>
-              <th className="px-4 py-2">{vi.category.title}</th>
-              <th className="px-4 py-2">{vi.book.availability}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading && (
+      {isStaff ? (
+        <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white">
+          <table className="w-full text-sm">
+            <thead className="border-b-2 border-[#c9a24b] bg-[#f6efdd] text-left text-xs font-semibold uppercase tracking-wide text-[#0f1c3a]">
               <tr>
-                <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
-                  {vi.common.loading}
-                </td>
+                <th className="px-4 py-2">{vi.common.stt}</th>
+                <th className="px-4 py-2"></th>
+                <th className="px-4 py-2">{vi.book.title}</th>
+                <th className="px-4 py-2">{vi.book.author}</th>
+                <th className="px-4 py-2">{vi.category.title}</th>
+                <th className="px-4 py-2">{vi.book.availability}</th>
               </tr>
+            </thead>
+            <tbody>
+              {isLoading && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
+                    {vi.common.loading}
+                  </td>
+                </tr>
+              )}
+              {!isLoading && data?.items.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
+                    {vi.book.noResults}
+                  </td>
+                </tr>
+              )}
+              {data?.items.map((book, index) => (
+                <tr key={book.id} className="border-t border-slate-100 hover:bg-slate-50">
+                  <td className="px-4 py-2 text-slate-400">{index + 1}</td>
+                  <td className="px-4 py-2">
+                    {book.coverImageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={resolveAssetUrl(book.coverImageUrl) ?? undefined}
+                        alt={book.title}
+                        className="h-14 w-10 rounded object-cover"
+                      />
+                    ) : (
+                      <div className="h-14 w-10 rounded bg-slate-100" />
+                    )}
+                  </td>
+                  <td className="px-4 py-2">
+                    <Link href={`/sach/${book.id}`} className="font-medium text-slate-800 hover:underline">
+                      {book.title}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-2 text-slate-600">{book.author.name}</td>
+                  <td className="px-4 py-2 text-slate-600">{book.category.name}</td>
+                  <td className="px-4 py-2 text-slate-600">
+                    {book.availableCopies}/{book.totalCopies} {vi.book.availability}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <>
+          {!isLoading && data && (
+            <p className="mt-4 text-xs text-slate-400">
+              {data.total} {vi.book.resultsFound}
+            </p>
+          )}
+          <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {isLoading && (
+              <p className="col-span-full py-10 text-center text-sm text-slate-400">{vi.common.loading}</p>
             )}
             {!isLoading && data?.items.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
-                  {vi.book.noResults}
-                </td>
-              </tr>
+              <p className="col-span-full py-10 text-center text-sm text-slate-400">{vi.book.noResults}</p>
             )}
-            {data?.items.map((book, index) => (
-              <tr key={book.id} className="border-t border-slate-100 hover:bg-slate-50">
-                <td className="px-4 py-2 text-slate-400">{index + 1}</td>
-                <td className="px-4 py-2">
-                  {book.coverImageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={resolveAssetUrl(book.coverImageUrl) ?? undefined}
-                      alt={book.title}
-                      className="h-14 w-10 rounded object-cover"
-                    />
-                  ) : (
-                    <div className="h-14 w-10 rounded bg-slate-100" />
-                  )}
-                </td>
-                <td className="px-4 py-2">
-                  <Link href={`/sach/${book.id}`} className="font-medium text-slate-800 hover:underline">
-                    {book.title}
-                  </Link>
-                </td>
-                <td className="px-4 py-2 text-slate-600">{book.author.name}</td>
-                <td className="px-4 py-2 text-slate-600">{book.category.name}</td>
-                <td className="px-4 py-2 text-slate-600">
-                  {book.availableCopies}/{book.totalCopies} {vi.book.availability}
-                </td>
-              </tr>
+            {data?.items.map((book) => (
+              <BookGridItem key={book.id} book={book} href={`/sach/${book.id}`} />
             ))}
-          </tbody>
-        </table>
-      </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

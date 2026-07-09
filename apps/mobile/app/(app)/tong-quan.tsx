@@ -1,31 +1,61 @@
 import { useState } from "react";
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Image, Modal, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
-import { ADMIN_ROLES, ApiError, STAFF_ROLES, vi } from "@thuvien/shared";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { ApiError, STAFF_ROLES, vi } from "@thuvien/shared";
 import { useAuth } from "../../lib/auth-context";
-import { useMyLoans } from "../../hooks/use-patrons";
+import { useMyLoans, usePatron } from "../../hooks/use-patrons";
 import { useMyFines } from "../../hooks/use-fines";
+import { usePatronTypes } from "../../hooks/use-patron-types";
 import { useChangePassword } from "../../hooks/use-change-password";
+import { resolveAssetUrl } from "../../lib/asset-url";
+import { colors } from "../../lib/theme";
+import { Card } from "../../components/ui/Card";
+import { Badge } from "../../components/ui/Badge";
+import { Button } from "../../components/ui/Button";
 
-function NavButton({ label, onPress }: { label: string; onPress: () => void }) {
+function StatTile({
+  icon,
+  label,
+  value,
+  danger,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+  danger?: boolean;
+}) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={{ backgroundColor: "white", borderWidth: 1, borderColor: "#e2e8f0", padding: 14, borderRadius: 10 }}
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: "#ffffff",
+        borderRadius: 12,
+        padding: 12,
+        borderWidth: 1,
+        borderColor: danger ? colors.dangerBorder : colors.border,
+      }}
     >
-      <Text style={{ fontWeight: "600", color: "#1e293b" }}>{label}</Text>
-    </Pressable>
+      <Ionicons name={icon} size={17} color={danger ? colors.danger : colors.navy} />
+      <Text style={{ fontSize: 18, fontWeight: "800", color: danger ? colors.danger : colors.navy, marginTop: 6 }}>
+        {value}
+      </Text>
+      <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>{label}</Text>
+    </View>
   );
 }
 
 export default function TongQuanScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const isStaff = user ? STAFF_ROLES.includes(user.role) : false;
-  const isAdmin = user ? ADMIN_ROLES.includes(user.role) : false;
 
-  const { data: myLoans } = useMyLoans();
-  const { data: myFines } = useMyFines();
+  const { data: myLoans, refetch: refetchLoans, isRefetching: refetchingLoans } = useMyLoans();
+  const { data: myFines, refetch: refetchFines, isRefetching: refetchingFines } = useMyFines();
+  const { data: patron, refetch: refetchPatron } = usePatron(!isStaff ? user?.id : undefined);
+  const { data: patronTypes } = usePatronTypes();
   const changePassword = useChangePassword();
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -34,6 +64,18 @@ export default function TongQuanScreen() {
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordInfo, setPasswordInfo] = useState<string | null>(null);
+
+  const activeLoans = (myLoans ?? []).filter((l) => l.status !== "RETURNED");
+  const overdueLoans = activeLoans.filter((l) => l.status === "OVERDUE");
+  const unpaidFines = (myFines ?? []).filter((f) => f.status === "UNPAID");
+  const totalUnpaid = unpaidFines.reduce((sum, f) => sum + f.amount, 0);
+  const patronType = patronTypes?.find((t) => t.id === patron?.patronTypeId) ?? patronTypes?.find((t) => t.isDefault);
+
+  const sortedLoans = [...activeLoans].sort((a, b) => {
+    if (a.status === "OVERDUE" && b.status !== "OVERDUE") return -1;
+    if (b.status === "OVERDUE" && a.status !== "OVERDUE") return 1;
+    return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+  });
 
   function openPasswordModal() {
     setCurrentPassword("");
@@ -63,126 +105,187 @@ export default function TongQuanScreen() {
     }
   }
 
+  async function handleRefresh() {
+    await Promise.all([refetchLoans(), refetchFines(), refetchPatron()]);
+  }
+
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "white" }} contentContainerStyle={{ padding: 24, paddingTop: 64 }}>
-      <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 18, fontWeight: "600", color: "#1e293b" }}>{vi.nav.dashboard}</Text>
-          <Text style={{ marginTop: 8, color: "#475569" }}>
-            Xin chào, {user?.fullName} ({user && vi.roles[user.role]})
-          </Text>
-        </View>
-        {!isStaff && (
-          <Pressable
-            onPress={openPasswordModal}
-            style={{ borderWidth: 1, borderColor: "#cbd5e1", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
-          >
-            <Text style={{ color: "#334155", fontWeight: "600", fontSize: 12 }}>{vi.auth.changePassword}</Text>
-          </Pressable>
-        )}
-      </View>
-
-      {passwordInfo && (
-        <Text style={{ color: "#047857", backgroundColor: "#ecfdf5", padding: 10, borderRadius: 8, marginTop: 12 }}>
-          {passwordInfo}
-        </Text>
-      )}
-
-      <View style={{ marginTop: 24, gap: 10 }}>
-        <NavButton label={vi.nav.books} onPress={() => router.push("/(app)/sach")} />
-        {isStaff && (
-          <>
-            <NavButton label={vi.nav.categories} onPress={() => router.push("/(app)/the-loai")} />
-            <NavButton label={vi.nav.authors} onPress={() => router.push("/(app)/tac-gia")} />
-            <NavButton label={vi.nav.patrons} onPress={() => router.push("/(app)/ban-doc")} />
-            <NavButton label={vi.nav.loans} onPress={() => router.push("/(app)/muon-tra")} />
-            <NavButton label={vi.nav.fines} onPress={() => router.push("/(app)/phat")} />
-            <NavButton label={vi.nav.notifications} onPress={() => router.push("/(app)/thong-bao")} />
-            <NavButton label={vi.nav.reports} onPress={() => router.push("/(app)/bao-cao")} />
-            {isAdmin && (
-              <>
-                <NavButton label={vi.nav.users} onPress={() => router.push("/(app)/nguoi-dung")} />
-                <NavButton label={vi.nav.settings} onPress={() => router.push("/(app)/cai-dat")} />
-              </>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.background }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refetchingLoans || refetchingFines}
+          onRefresh={handleRefresh}
+          tintColor={colors.navy}
+        />
+      }
+    >
+      <View style={{ backgroundColor: colors.navy, paddingTop: insets.top + 16, paddingBottom: 20, paddingHorizontal: 20 }}>
+        {!isStaff ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            {patron?.avatarUrl ? (
+              <Image
+                source={{ uri: resolveAssetUrl(patron.avatarUrl) ?? undefined }}
+                style={{ width: 52, height: 78, borderRadius: 8, borderWidth: 2, borderColor: colors.gold }}
+              />
+            ) : (
+              <View
+                style={{
+                  width: 52,
+                  height: 78,
+                  borderRadius: 8,
+                  backgroundColor: colors.navyLight,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: 2,
+                  borderColor: colors.gold,
+                }}
+              >
+                <Text style={{ color: colors.gold, fontSize: 20, fontWeight: "700" }}>
+                  {user?.fullName.charAt(0).toUpperCase()}
+                </Text>
+              </View>
             )}
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 17, fontWeight: "700", color: "#ffffff" }}>{user?.fullName}</Text>
+              <Text style={{ fontSize: 12, color: colors.gold, marginTop: 3 }}>
+                {patron?.studentCode}
+                {patron?.className ? ` · ${patron.className}` : ""}
+                {patron?.patronTypeName ? ` · ${patron.patronTypeName}` : ""}
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <>
+            <Text style={{ fontSize: 18, fontWeight: "700", color: "#ffffff" }}>{vi.nav.dashboard}</Text>
+            <Text style={{ marginTop: 6, color: colors.gold, fontSize: 13 }}>
+              Xin chào, {user?.fullName} ({user && vi.roles[user.role]})
+            </Text>
           </>
         )}
       </View>
 
-      {!isStaff && (
-        <View style={{ marginTop: 24 }}>
-          <Text style={{ fontSize: 15, fontWeight: "600", color: "#1e293b", marginBottom: 8 }}>
-            {vi.nav.loans}
+      <View style={{ padding: 16, gap: 12 }}>
+        {!isStaff && overdueLoans.length > 0 && (
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              gap: 10,
+              backgroundColor: colors.dangerBg,
+              borderWidth: 1,
+              borderColor: colors.dangerBorder,
+              borderRadius: 10,
+              padding: 12,
+            }}
+          >
+            <Ionicons name="warning" size={20} color={colors.danger} />
+            <Text style={{ flex: 1, fontSize: 13, fontWeight: "700", color: colors.dangerText }}>
+              Bạn có {overdueLoans.length} sách quá hạn — vui lòng trả sớm để tránh phí phạt tăng thêm
+            </Text>
+          </View>
+        )}
+
+        {!isStaff && (
+          <View style={{ flexDirection: "row", gap: 10 }}>
+            <StatTile
+              icon="book-outline"
+              label="Đang mượn"
+              value={patronType ? `${activeLoans.length}/${patronType.maxActiveLoans}` : String(activeLoans.length)}
+            />
+            <StatTile
+              icon="alert-circle-outline"
+              label="Quá hạn"
+              value={String(overdueLoans.length)}
+              danger={overdueLoans.length > 0}
+            />
+            <StatTile
+              icon="cash-outline"
+              label="Phạt chưa trả"
+              value={totalUnpaid > 0 ? `${totalUnpaid.toLocaleString("vi-VN")}đ` : "0đ"}
+              danger={totalUnpaid > 0}
+            />
+          </View>
+        )}
+
+        {passwordInfo && (
+          <Text
+            style={{
+              color: colors.successText,
+              backgroundColor: colors.successBg,
+              padding: 10,
+              borderRadius: 8,
+              fontSize: 13,
+            }}
+          >
+            {passwordInfo}
           </Text>
-          {(myLoans ?? []).filter((l) => l.status !== "RETURNED").length === 0 && (
-            <Text style={{ color: "#94a3b8" }}>{vi.loan.noActiveLoans}</Text>
-          )}
-          {myLoans
-            ?.filter((l) => l.status !== "RETURNED")
-            .map((loan) => (
-              <View
-                key={loan.id}
-                style={{ borderWidth: 1, borderColor: "#e2e8f0", borderRadius: 10, padding: 12, marginBottom: 8 }}
-              >
-                <Text style={{ fontWeight: "600", color: "#1e293b" }}>{loan.book.title}</Text>
-                <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 4 }}>
-                  <Text style={{ fontSize: 12, color: "#94a3b8" }}>
+        )}
+
+        {!isStaff && (
+          <>
+            <Text style={{ fontSize: 15, fontWeight: "700", color: colors.navy, marginTop: 4 }}>{vi.nav.loans}</Text>
+            {sortedLoans.length === 0 ? (
+              <Card>
+                <Text style={{ color: colors.textMuted, textAlign: "center", fontSize: 13 }}>
+                  {vi.loan.noActiveLoans}
+                </Text>
+              </Card>
+            ) : (
+              sortedLoans.map((loan) => (
+                <Card key={loan.id}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                    <Text style={{ fontWeight: "700", color: colors.textPrimary, flex: 1 }}>{loan.book.title}</Text>
+                    <Badge tone={loan.status === "OVERDUE" ? "danger" : "success"}>{vi.loanStatus[loan.status]}</Badge>
+                  </View>
+                  <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>
                     {vi.loan.dueDate}: {new Date(loan.dueDate).toLocaleDateString("vi-VN")}
                   </Text>
-                  <Text
-                    style={{
-                      fontSize: 11,
-                      fontWeight: "600",
-                      color: loan.status === "OVERDUE" ? "#dc2626" : "#047857",
-                    }}
-                  >
-                    {vi.loanStatus[loan.status]}
+                </Card>
+              ))
+            )}
+
+            <Text style={{ fontSize: 15, fontWeight: "700", color: colors.navy, marginTop: 8 }}>{vi.fine.myFines}</Text>
+            {unpaidFines.length === 0 ? (
+              <Card>
+                <Text style={{ color: colors.textMuted, textAlign: "center", fontSize: 13 }}>{vi.fine.noFines}</Text>
+              </Card>
+            ) : (
+              unpaidFines.map((fine) => (
+                <Card key={fine.id} style={{ backgroundColor: colors.dangerBg, borderColor: colors.dangerBorder }}>
+                  <Text style={{ fontWeight: "700", color: colors.dangerText }}>{fine.loan.book.title}</Text>
+                  <Text style={{ fontSize: 12, color: colors.dangerText, marginTop: 2 }}>{fine.reason}</Text>
+                  <Text style={{ fontWeight: "800", color: colors.dangerText, marginTop: 4 }}>
+                    {fine.amount.toLocaleString("vi-VN")}đ
                   </Text>
-                </View>
-              </View>
-            ))}
+                </Card>
+              ))
+            )}
 
-          <Text style={{ fontSize: 15, fontWeight: "600", color: "#1e293b", marginTop: 16, marginBottom: 8 }}>
-            {vi.fine.myFines}
-          </Text>
-          {(myFines ?? []).filter((f) => f.status === "UNPAID").length === 0 && (
-            <Text style={{ color: "#94a3b8" }}>{vi.fine.noFines}</Text>
-          )}
-          {myFines
-            ?.filter((f) => f.status === "UNPAID")
-            .map((fine) => (
-              <View
-                key={fine.id}
-                style={{ borderWidth: 1, borderColor: "#fecaca", backgroundColor: "#fef2f2", borderRadius: 10, padding: 12, marginBottom: 8 }}
-              >
-                <Text style={{ fontWeight: "600", color: "#991b1b" }}>{fine.loan.book.title}</Text>
-                <Text style={{ fontSize: 12, color: "#b91c1c", marginTop: 2 }}>{fine.reason}</Text>
-                <Text style={{ fontWeight: "700", color: "#991b1b", marginTop: 4 }}>
-                  {fine.amount.toLocaleString("vi-VN")}đ
-                </Text>
-              </View>
-            ))}
-        </View>
-      )}
+            <Button variant="secondary" icon="key-outline" onPress={openPasswordModal}>
+              {vi.auth.changePassword}
+            </Button>
+          </>
+        )}
 
-      <Pressable
-        onPress={async () => {
-          await logout();
-          router.replace("/(auth)/dang-nhap");
-        }}
-        style={{ marginTop: 32, backgroundColor: "#0f172a", padding: 12, borderRadius: 8 }}
-      >
-        <Text style={{ color: "white", textAlign: "center", fontWeight: "500" }}>
+        <Button
+          variant="danger"
+          icon="log-out-outline"
+          onPress={async () => {
+            await logout();
+            router.replace("/(auth)/dang-nhap");
+          }}
+        >
           {vi.nav.logout}
-        </Text>
-      </Pressable>
+        </Button>
+      </View>
 
       <Modal visible={showPasswordModal} transparent animationType="fade" onRequestClose={() => setShowPasswordModal(false)}>
-        <View style={{ flex: 1, backgroundColor: "rgba(15,23,42,0.4)", justifyContent: "center", padding: 20 }}>
+        <View style={{ flex: 1, backgroundColor: "rgba(15,28,58,0.5)", justifyContent: "center", padding: 20 }}>
           <View style={{ backgroundColor: "white", borderRadius: 12, padding: 20 }}>
-            <Text style={{ fontSize: 16, fontWeight: "700", color: "#1e293b" }}>{vi.auth.changePassword}</Text>
+            <Text style={{ fontSize: 16, fontWeight: "700", color: colors.navy }}>{vi.auth.changePassword}</Text>
 
-            <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginTop: 16, marginBottom: 4 }}>
+            <Text style={{ fontSize: 13, fontWeight: "500", color: colors.textSecondary, marginTop: 16, marginBottom: 4 }}>
               {vi.auth.currentPassword}
             </Text>
             <TextInput
@@ -192,7 +295,7 @@ export default function TongQuanScreen() {
               style={{ borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 8, padding: 10, backgroundColor: "white" }}
             />
 
-            <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginTop: 12, marginBottom: 4 }}>
+            <Text style={{ fontSize: 13, fontWeight: "500", color: colors.textSecondary, marginTop: 12, marginBottom: 4 }}>
               {vi.auth.newPassword}
             </Text>
             <TextInput
@@ -202,7 +305,7 @@ export default function TongQuanScreen() {
               style={{ borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 8, padding: 10, backgroundColor: "white" }}
             />
 
-            <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginTop: 12, marginBottom: 4 }}>
+            <Text style={{ fontSize: 13, fontWeight: "500", color: colors.textSecondary, marginTop: 12, marginBottom: 4 }}>
               {vi.auth.confirmNewPassword}
             </Text>
             <TextInput
@@ -213,28 +316,27 @@ export default function TongQuanScreen() {
             />
 
             {passwordError && (
-              <Text style={{ color: "#b91c1c", backgroundColor: "#fef2f2", padding: 10, borderRadius: 8, marginTop: 12 }}>
+              <Text
+                style={{
+                  color: colors.dangerText,
+                  backgroundColor: colors.dangerBg,
+                  padding: 10,
+                  borderRadius: 8,
+                  marginTop: 12,
+                  fontSize: 13,
+                }}
+              >
                 {passwordError}
               </Text>
             )}
 
-            <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 12, marginTop: 16 }}>
-              <Pressable onPress={() => setShowPasswordModal(false)}>
-                <Text style={{ color: "#64748b", fontWeight: "600" }}>{vi.common.cancel}</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleChangePassword}
-                disabled={changePassword.isPending}
-                style={{
-                  backgroundColor: "#0f172a",
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  opacity: changePassword.isPending ? 0.6 : 1,
-                }}
-              >
-                <Text style={{ color: "white", fontWeight: "600" }}>{vi.common.save}</Text>
-              </Pressable>
+            <View style={{ flexDirection: "row", justifyContent: "flex-end", gap: 10, marginTop: 16 }}>
+              <Button variant="ghost" size="sm" onPress={() => setShowPasswordModal(false)}>
+                {vi.common.cancel}
+              </Button>
+              <Button size="sm" onPress={handleChangePassword} loading={changePassword.isPending}>
+                {vi.common.save}
+              </Button>
             </View>
           </View>
         </View>

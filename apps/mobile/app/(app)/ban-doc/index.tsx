@@ -43,14 +43,14 @@ export default function BanDocListScreen() {
             {item.avatarUrl ? (
               <Image
                 source={{ uri: resolveAssetUrl(item.avatarUrl) ?? undefined }}
-                style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#e2e8f0" }}
+                style={{ width: 32, height: 48, borderRadius: 6, backgroundColor: "#e2e8f0" }}
               />
             ) : (
               <View
                 style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 18,
+                  width: 32,
+                  height: 48,
+                  borderRadius: 6,
                   backgroundColor: "#f1f5f9",
                   alignItems: "center",
                   justifyContent: "center",

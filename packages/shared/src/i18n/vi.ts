@@ -19,6 +19,7 @@ export const vi = {
     settings: "Cài đặt",
     search: "Tra cứu",
     logout: "Đăng xuất",
+    more: "Thêm",
   },
   auth: {
     loginTitle: "Đăng nhập",

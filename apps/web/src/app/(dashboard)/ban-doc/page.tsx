@@ -118,10 +118,10 @@ export default function BanDocPage() {
                     <img
                       src={resolveAssetUrl(patron.avatarUrl) ?? undefined}
                       alt={patron.fullName}
-                      className="h-9 w-9 rounded-full border border-slate-200 object-cover"
+                      className="aspect-[2/3] w-8 rounded border border-slate-200 object-cover"
                     />
                   ) : (
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xs font-medium text-slate-400">
+                    <div className="flex aspect-[2/3] w-8 items-center justify-center rounded border border-slate-200 bg-slate-50 text-xs font-medium text-slate-400">
                       {patron.fullName.charAt(0).toUpperCase()}
                     </div>
                   )}
