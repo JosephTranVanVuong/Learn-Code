@@ -100,7 +100,10 @@ export default function PhatPage() {
               <tr key={fine.id} className="border-t border-slate-100">
                 <td className="px-4 py-2 text-slate-400">{index + 1}</td>
                 <td className="px-4 py-2 text-slate-800">{fine.patron.fullName}</td>
-                <td className="px-4 py-2 text-slate-600">{fine.loan.book.title}</td>
+                <td className="px-4 py-2 text-slate-600">
+                  {fine.loan.book.title}{" "}
+                  <span className="font-mono text-xs text-slate-400">({fine.loan.copy.barcode})</span>
+                </td>
                 <td className="px-4 py-2 text-slate-600">{fine.reason}</td>
                 <td className="px-4 py-2 font-medium text-slate-800">
                   {fine.amount.toLocaleString("vi-VN")}đ

@@ -170,7 +170,7 @@ export default function ThongBaoScreen() {
             >
               <Text style={{ fontSize: 13, fontWeight: "600", color: "#1e293b" }}>
                 <Text style={{ color: "#94a3b8" }}>{index + 1}. </Text>
-                {item.bookTitle}
+                {item.bookTitle} <Text style={{ fontWeight: "400", color: "#94a3b8" }}>({item.barcode})</Text>
               </Text>
               <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 2 }}>
                 <Text style={{ fontSize: 11, color: "#64748b" }}>
@@ -221,7 +221,7 @@ export default function ThongBaoScreen() {
             >
               <Text style={{ fontSize: 13, fontWeight: "600", color: "#1e293b" }}>
                 <Text style={{ color: "#94a3b8" }}>{index + 1}. </Text>
-                {item.bookTitle}
+                {item.bookTitle} <Text style={{ fontWeight: "400", color: "#94a3b8" }}>({item.barcode})</Text>
               </Text>
               <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 2 }}>
                 <Text style={{ fontSize: 11, color: "#64748b" }}>

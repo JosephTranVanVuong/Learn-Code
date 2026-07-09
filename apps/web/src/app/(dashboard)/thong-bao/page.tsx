@@ -140,6 +140,7 @@ export default function ThongBaoPage() {
               <tr>
                 <th className="px-4 py-2">{vi.common.stt}</th>
                 <th className="px-4 py-2">{vi.book.title}</th>
+                <th className="px-4 py-2">{vi.copy.barcode}</th>
                 <th className="px-4 py-2">{vi.patron.title}</th>
                 <th className="px-4 py-2">{vi.loan.dueDate}</th>
                 <th className="px-4 py-2">{vi.patron.email}</th>
@@ -148,14 +149,14 @@ export default function ThongBaoPage() {
             <tbody>
               {loadingDueSoon && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-4 text-center text-slate-400">
+                  <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
                     {vi.common.loading}
                   </td>
                 </tr>
               )}
               {!loadingDueSoon && dueSoon?.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-4 text-center text-slate-400">
+                  <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
                     {vi.notification.noDueSoon}
                   </td>
                 </tr>
@@ -164,6 +165,7 @@ export default function ThongBaoPage() {
                 <tr key={item.loanId} className="border-t border-slate-100">
                   <td className="px-4 py-2 text-slate-400">{index + 1}</td>
                   <td className="px-4 py-2 text-slate-800">{item.bookTitle}</td>
+                  <td className="px-4 py-2 font-mono text-xs text-slate-500">{item.barcode}</td>
                   <td className="px-4 py-2 text-slate-600">
                     {item.patronName} <span className="text-xs text-slate-400">({item.studentCode})</span>
                   </td>
@@ -212,6 +214,7 @@ export default function ThongBaoPage() {
               <tr>
                 <th className="px-4 py-2">{vi.common.stt}</th>
                 <th className="px-4 py-2">{vi.book.title}</th>
+                <th className="px-4 py-2">{vi.copy.barcode}</th>
                 <th className="px-4 py-2">{vi.patron.title}</th>
                 <th className="px-4 py-2">{vi.report.daysOverdue}</th>
                 <th className="px-4 py-2">{vi.report.estimatedFine}</th>
@@ -221,14 +224,14 @@ export default function ThongBaoPage() {
             <tbody>
               {loadingOverdue && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
+                  <td colSpan={7} className="px-4 py-4 text-center text-slate-400">
                     {vi.common.loading}
                   </td>
                 </tr>
               )}
               {!loadingOverdue && overdue?.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
+                  <td colSpan={7} className="px-4 py-4 text-center text-slate-400">
                     {vi.notification.noOverdue}
                   </td>
                 </tr>
@@ -237,6 +240,7 @@ export default function ThongBaoPage() {
                 <tr key={item.loanId} className="border-t border-slate-100">
                   <td className="px-4 py-2 text-slate-400">{index + 1}</td>
                   <td className="px-4 py-2 text-slate-800">{item.bookTitle}</td>
+                  <td className="px-4 py-2 font-mono text-xs text-slate-500">{item.barcode}</td>
                   <td className="px-4 py-2 text-slate-600">
                     {item.patronName} <span className="text-xs text-slate-400">({item.studentCode})</span>
                   </td>

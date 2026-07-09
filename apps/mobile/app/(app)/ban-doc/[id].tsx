@@ -477,6 +477,9 @@ export default function ChiTietChungSinhScreen() {
               </Badge>
             </View>
             <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>
+              {vi.copy.barcode}: {loan.copy.barcode}
+            </Text>
+            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
               {vi.loan.dueDate}: {new Date(loan.dueDate).toLocaleDateString("vi-VN")}
             </Text>
           </Card>
@@ -490,7 +493,9 @@ export default function ChiTietChungSinhScreen() {
         )}
         {fines?.items.map((fine) => (
           <Card key={fine.id}>
-            <Text style={{ fontWeight: "700", color: colors.textPrimary }}>{fine.loan.book.title}</Text>
+            <Text style={{ fontWeight: "700", color: colors.textPrimary }}>
+              {fine.loan.book.title} <Text style={{ fontWeight: "400", color: colors.textMuted }}>({fine.loan.copy.barcode})</Text>
+            </Text>
             <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 2 }}>{fine.reason}</Text>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
               <Text style={{ fontWeight: "800", color: colors.textPrimary }}>{fine.amount.toLocaleString("vi-VN")}đ</Text>

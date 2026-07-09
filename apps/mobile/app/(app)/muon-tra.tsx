@@ -309,7 +309,9 @@ function BorrowPanel() {
               ) : (
                 activeLoans.map((loan) => (
                   <View key={loan.id} style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 3 }}>
-                    <Text style={{ fontSize: 12, color: colors.textPrimary, flex: 1 }}>{loan.book.title}</Text>
+                    <Text style={{ fontSize: 12, color: colors.textPrimary, flex: 1 }}>
+                      {loan.book.title} <Text style={{ color: colors.textMuted }}>({loan.copy.barcode})</Text>
+                    </Text>
                     <Text
                       style={{
                         fontSize: 11,
@@ -466,15 +468,17 @@ function BorrowPanel() {
 function ReturnPanel() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [quickResult, setQuickResult] = useState<{ title: string; fineAmount: number | null } | null>(null);
+  const [quickResult, setQuickResult] = useState<{ title: string; barcode: string; fineAmount: number | null } | null>(
+    null,
+  );
 
   const [patron, setPatron] = useState<Patron | null>(null);
   const { data: patronLoans } = usePatronLoans(patron?.id);
   const activeLoans = (patronLoans ?? []).filter((l) => l.status !== "RETURNED");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [batchResults, setBatchResults] = useState<{ loanId: string; title: string; fineAmount: number | null; error?: string }[] | null>(
-    null,
-  );
+  const [batchResults, setBatchResults] = useState<
+    { loanId: string; title: string; barcode: string; fineAmount: number | null; error?: string }[] | null
+  >(null);
   const [batchBusy, setBatchBusy] = useState(false);
 
   const returnLoan = useReturnLoan();
@@ -496,7 +500,7 @@ function ReturnPanel() {
     setQuickResult(null);
     try {
       const result = await returnByBarcode.mutateAsync({ barcode });
-      setQuickResult({ title: result.book.title, fineAmount: result.fine?.amount ?? null });
+      setQuickResult({ title: result.book.title, barcode: result.copy.barcode, fineAmount: result.fine?.amount ?? null });
     } catch (err) {
       setError(extractMessage(err, vi.loan.scanNoActiveLoan));
     }
@@ -505,14 +509,25 @@ function ReturnPanel() {
   async function handleConfirmReturnCart() {
     setBatchBusy(true);
     setBatchResults(null);
-    const results: { loanId: string; title: string; fineAmount: number | null; error?: string }[] = [];
+    const results: { loanId: string; title: string; barcode: string; fineAmount: number | null; error?: string }[] = [];
     for (const id of selectedIds) {
       const loan = activeLoans.find((l) => l.id === id);
       try {
         const res = await returnLoan.mutateAsync(id);
-        results.push({ loanId: id, title: loan?.book.title ?? "", fineAmount: res.fine?.amount ?? null });
+        results.push({
+          loanId: id,
+          title: loan?.book.title ?? "",
+          barcode: loan?.copy.barcode ?? "",
+          fineAmount: res.fine?.amount ?? null,
+        });
       } catch (err) {
-        results.push({ loanId: id, title: loan?.book.title ?? "", fineAmount: null, error: extractMessage(err, vi.common.error) });
+        results.push({
+          loanId: id,
+          title: loan?.book.title ?? "",
+          barcode: loan?.copy.barcode ?? "",
+          fineAmount: null,
+          error: extractMessage(err, vi.common.error),
+        });
       }
     }
     setBatchResults(results);
@@ -531,7 +546,9 @@ function ReturnPanel() {
         </Button>
         {quickResult && (
           <View style={{ backgroundColor: colors.successBg, borderRadius: 8, padding: 10 }}>
-            <Text style={{ fontSize: 13, fontWeight: "600", color: colors.successText }}>{quickResult.title}</Text>
+            <Text style={{ fontSize: 13, fontWeight: "600", color: colors.successText }}>
+              {quickResult.title} <Text style={{ fontWeight: "400" }}>({quickResult.barcode})</Text>
+            </Text>
             <Text style={{ fontSize: 12, color: colors.successText, marginTop: 2 }}>
               {quickResult.fineAmount
                 ? `${vi.loan.fineGenerated}: ${quickResult.fineAmount.toLocaleString("vi-VN")}đ`
@@ -604,7 +621,9 @@ function ReturnPanel() {
                           size={18}
                           color={checked ? colors.navy : colors.textMuted}
                         />
-                        <Text style={{ fontSize: 13, color: colors.textPrimary, flex: 1 }}>{loan.book.title}</Text>
+                        <Text style={{ fontSize: 13, color: colors.textPrimary, flex: 1 }}>
+                          {loan.book.title} <Text style={{ color: colors.textMuted }}>({loan.copy.barcode})</Text>
+                        </Text>
                         <Text
                           style={{
                             fontSize: 11,
@@ -635,7 +654,9 @@ function ReturnPanel() {
                 </Text>
                 {batchResults.map((r) => (
                   <View key={r.loanId} style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                    <Text style={{ fontSize: 12, color: colors.textPrimary, flex: 1 }}>{r.title}</Text>
+                    <Text style={{ fontSize: 12, color: colors.textPrimary, flex: 1 }}>
+                      {r.title} <Text style={{ color: colors.textMuted }}>({r.barcode})</Text>
+                    </Text>
                     <Text
                       style={{
                         fontSize: 11,
@@ -742,6 +763,9 @@ function ActiveLoansPanel({ defaultLoanPeriodDays }: { defaultLoanPeriodDays: nu
             <Text style={{ fontWeight: "700", color: colors.textPrimary, flex: 1 }}>{loan.book.title}</Text>
             <Badge tone={loan.status === "OVERDUE" ? "danger" : "success"}>{vi.loanStatus[loan.status]}</Badge>
           </View>
+          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+            {vi.copy.barcode}: {loan.copy.barcode}
+          </Text>
           <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 4 }}>{loan.patron.fullName}</Text>
           <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
             {vi.loan.dueDate}: {new Date(loan.dueDate).toLocaleDateString("vi-VN")}

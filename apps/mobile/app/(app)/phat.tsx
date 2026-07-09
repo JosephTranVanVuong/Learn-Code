@@ -102,7 +102,9 @@ export default function PhatScreen() {
               <Text style={{ color: "#94a3b8" }}>{index + 1}. </Text>
               {fine.patron.fullName}
             </Text>
-            <Text style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>{fine.loan.book.title}</Text>
+            <Text style={{ fontSize: 12, color: "#64748b", marginTop: 2 }}>
+              {fine.loan.book.title} <Text style={{ color: "#94a3b8" }}>({fine.loan.copy.barcode})</Text>
+            </Text>
             <Text style={{ fontSize: 12, color: "#94a3b8", marginTop: 2 }}>{fine.reason}</Text>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
               <Text style={{ fontWeight: "700", color: "#1e293b" }}>{fine.amount.toLocaleString("vi-VN")}đ</Text>

@@ -395,6 +395,7 @@ export default function ChiTietChungSinhPage() {
               <tr>
                 <th className="px-4 py-2">{vi.common.stt}</th>
                 <th className="px-4 py-2">{vi.book.title}</th>
+                <th className="px-4 py-2">{vi.copy.barcode}</th>
                 <th className="px-4 py-2">{vi.loan.borrowedAt}</th>
                 <th className="px-4 py-2">{vi.loan.dueDate}</th>
                 <th className="px-4 py-2">{vi.copy.status}</th>
@@ -403,7 +404,7 @@ export default function ChiTietChungSinhPage() {
             <tbody>
               {(!loans || loans.length === 0) && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-4 text-center text-slate-400">
+                  <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
                     {vi.loan.noActiveLoans}
                   </td>
                 </tr>
@@ -412,6 +413,7 @@ export default function ChiTietChungSinhPage() {
                 <tr key={loan.id} className="border-t border-slate-100">
                   <td className="px-4 py-2 text-slate-400">{index + 1}</td>
                   <td className="px-4 py-2 text-slate-800">{loan.book.title}</td>
+                  <td className="px-4 py-2 font-mono text-xs text-slate-500">{loan.copy.barcode}</td>
                   <td className="px-4 py-2 text-slate-600">
                     {new Date(loan.borrowedAt).toLocaleDateString("vi-VN")}
                   </td>
@@ -446,6 +448,7 @@ export default function ChiTietChungSinhPage() {
               <tr>
                 <th className="px-4 py-2">{vi.common.stt}</th>
                 <th className="px-4 py-2">{vi.book.title}</th>
+                <th className="px-4 py-2">{vi.copy.barcode}</th>
                 <th className="px-4 py-2">{vi.fine.reason}</th>
                 <th className="px-4 py-2">{vi.fine.amount}</th>
                 <th className="px-4 py-2">{vi.copy.status}</th>
@@ -455,7 +458,7 @@ export default function ChiTietChungSinhPage() {
             <tbody>
               {(!fines || fines.items.length === 0) && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
+                  <td colSpan={7} className="px-4 py-4 text-center text-slate-400">
                     {vi.fine.noFines}
                   </td>
                 </tr>
@@ -464,6 +467,7 @@ export default function ChiTietChungSinhPage() {
                 <tr key={fine.id} className="border-t border-slate-100">
                   <td className="px-4 py-2 text-slate-400">{index + 1}</td>
                   <td className="px-4 py-2 text-slate-800">{fine.loan.book.title}</td>
+                  <td className="px-4 py-2 font-mono text-xs text-slate-500">{fine.loan.copy.barcode}</td>
                   <td className="px-4 py-2 text-slate-600">{fine.reason}</td>
                   <td className="px-4 py-2 font-medium text-slate-800">
                     {fine.amount.toLocaleString("vi-VN")}đ

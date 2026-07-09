@@ -3,6 +3,7 @@ import { z } from "zod";
 export const dueSoonLoanItemSchema = z.object({
   loanId: z.string(),
   bookTitle: z.string(),
+  barcode: z.string(),
   dueDate: z.string(),
   patronName: z.string(),
   studentCode: z.string(),
@@ -13,6 +14,7 @@ export type DueSoonLoanItem = z.infer<typeof dueSoonLoanItemSchema>;
 export const overdueNotifyItemSchema = z.object({
   loanId: z.string(),
   bookTitle: z.string(),
+  barcode: z.string(),
   dueDate: z.string(),
   patronName: z.string(),
   studentCode: z.string(),

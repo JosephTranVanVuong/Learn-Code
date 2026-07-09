@@ -310,7 +310,9 @@ export default function TongQuanPage() {
                       loan.status === "OVERDUE" ? "border-l-red-500" : "border-l-emerald-500"
                     }`}
                   >
-                    <p className="font-medium text-slate-800">{loan.book.title}</p>
+                    <p className="font-medium text-slate-800">
+                      {loan.book.title} <span className="font-mono text-xs text-slate-400">({loan.copy.barcode})</span>
+                    </p>
                     <div className="mt-1 flex items-center justify-between text-xs text-slate-500">
                       <span>
                         {vi.loan.dueDate}: {new Date(loan.dueDate).toLocaleDateString("vi-VN")}
@@ -339,7 +341,10 @@ export default function TongQuanPage() {
                 {unpaidFines.length === 0 && <p className="text-sm text-slate-400">{vi.fine.noFines}</p>}
                 {unpaidFines.map((fine) => (
                   <div key={fine.id} className="rounded-lg border-l-4 border-l-red-500 bg-red-50 p-3 ring-1 ring-red-100">
-                    <p className="font-medium text-red-800">{fine.loan.book.title}</p>
+                    <p className="font-medium text-red-800">
+                      {fine.loan.book.title}{" "}
+                      <span className="font-mono text-xs text-red-500">({fine.loan.copy.barcode})</span>
+                    </p>
                     <p className="mt-1 text-xs text-red-600">{fine.reason}</p>
                     <p className="mt-1 font-semibold text-red-800">{fine.amount.toLocaleString("vi-VN")}đ</p>
                   </div>

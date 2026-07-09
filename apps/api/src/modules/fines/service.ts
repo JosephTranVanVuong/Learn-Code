@@ -20,6 +20,7 @@ function toFineWithDetails(row: FineRow): FineWithDetails {
       dueDate: row.loan.dueDate.toISOString(),
       returnedAt: row.loan.returnedAt?.toISOString() ?? null,
       book: { id: row.loan.copy.book.id, title: row.loan.copy.book.title },
+      copy: { id: row.loan.copy.id, barcode: row.loan.copy.barcode },
     },
   };
 }

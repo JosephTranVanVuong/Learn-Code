@@ -45,6 +45,7 @@ interface CartItem {
 interface ReturnResultItem {
   loanId: string;
   title: string;
+  barcode: string;
   fineAmount: number | null;
   error?: string;
 }
@@ -303,7 +304,9 @@ function BorrowPanel() {
                 <ul className="mt-1 space-y-1">
                   {activeLoans.map((loan) => (
                     <li key={loan.id} className="flex items-center justify-between text-xs text-slate-700">
-                      <span>{loan.book.title}</span>
+                      <span>
+                        {loan.book.title} <span className="font-mono text-[10px] text-slate-400">({loan.copy.barcode})</span>
+                      </span>
                       <span className={loan.status === "OVERDUE" ? "font-semibold text-red-600" : ""}>
                         {vi.loanStatus[loan.status]} · {new Date(loan.dueDate).toLocaleDateString("vi-VN")}
                       </span>
@@ -448,7 +451,9 @@ function ReturnPanel() {
   const [scanReturnInput, setScanReturnInput] = useState("");
   const [scanBusy, setScanBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [quickResult, setQuickResult] = useState<{ title: string; fineAmount: number | null } | null>(null);
+  const [quickResult, setQuickResult] = useState<{ title: string; barcode: string; fineAmount: number | null } | null>(
+    null,
+  );
 
   const [patron, setPatron] = useState<Patron | null>(null);
   const { data: patronLoans } = usePatronLoans(patron?.id);
@@ -481,7 +486,7 @@ function ReturnPanel() {
     setScanBusy(true);
     try {
       const result = await returnByBarcode.mutateAsync({ barcode });
-      setQuickResult({ title: result.book.title, fineAmount: result.fine?.amount ?? null });
+      setQuickResult({ title: result.book.title, barcode: result.copy.barcode, fineAmount: result.fine?.amount ?? null });
     } catch (err) {
       setError(extractMessage(err, vi.loan.scanNoActiveLoan));
     } finally {
@@ -497,9 +502,20 @@ function ReturnPanel() {
       const loan = activeLoans.find((l) => l.id === id);
       try {
         const res = await returnLoan.mutateAsync(id);
-        results.push({ loanId: id, title: loan?.book.title ?? "", fineAmount: res.fine?.amount ?? null });
+        results.push({
+          loanId: id,
+          title: loan?.book.title ?? "",
+          barcode: loan?.copy.barcode ?? "",
+          fineAmount: res.fine?.amount ?? null,
+        });
       } catch (err) {
-        results.push({ loanId: id, title: loan?.book.title ?? "", fineAmount: null, error: extractMessage(err, vi.common.error) });
+        results.push({
+          loanId: id,
+          title: loan?.book.title ?? "",
+          barcode: loan?.copy.barcode ?? "",
+          fineAmount: null,
+          error: extractMessage(err, vi.common.error),
+        });
       }
     }
     setBatchResults(results);
@@ -527,7 +543,9 @@ function ReturnPanel() {
         </div>
         {quickResult && (
           <div className="mt-3 max-w-md rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-            <p className="font-medium">{quickResult.title}</p>
+            <p className="font-medium">
+              {quickResult.title} <span className="font-mono text-xs text-emerald-600">({quickResult.barcode})</span>
+            </p>
             <p className="mt-0.5 text-xs">
               {quickResult.fineAmount
                 ? `${vi.loan.fineGenerated}: ${quickResult.fineAmount.toLocaleString("vi-VN")}đ`
@@ -588,7 +606,10 @@ function ReturnPanel() {
                             onChange={() => toggleSelected(loan.id)}
                             className="hidden"
                           />
-                          <span className="flex-1">{loan.book.title}</span>
+                          <span className="flex-1">
+                            {loan.book.title}{" "}
+                            <span className="font-mono text-[10px] text-slate-400">({loan.copy.barcode})</span>
+                          </span>
                           <span className={loan.status === "OVERDUE" ? "text-xs font-semibold text-red-600" : "text-xs text-slate-500"}>
                             {vi.loanStatus[loan.status]} · {new Date(loan.dueDate).toLocaleDateString("vi-VN")}
                           </span>
@@ -614,7 +635,9 @@ function ReturnPanel() {
                 <ul className="mt-1.5 space-y-1">
                   {batchResults.map((r) => (
                     <li key={r.loanId} className="flex items-center justify-between text-xs">
-                      <span className="text-slate-700">{r.title}</span>
+                      <span className="text-slate-700">
+                        {r.title} <span className="font-mono text-slate-400">({r.barcode})</span>
+                      </span>
                       <span className={r.error ? "font-medium text-red-600" : r.fineAmount ? "font-medium text-red-600" : "text-emerald-700"}>
                         {r.error
                           ? r.error
@@ -701,6 +724,7 @@ function ActiveLoansPanel({ defaultLoanPeriodDays }: { defaultLoanPeriodDays: nu
             <tr>
               <th className="px-4 py-2">{vi.common.stt}</th>
               <th className="px-4 py-2">{vi.book.title}</th>
+              <th className="px-4 py-2">{vi.copy.barcode}</th>
               <th className="px-4 py-2">{vi.patron.title}</th>
               <th className="px-4 py-2">{vi.loan.dueDate}</th>
               <th className="px-4 py-2">{vi.copy.status}</th>
@@ -710,14 +734,14 @@ function ActiveLoansPanel({ defaultLoanPeriodDays }: { defaultLoanPeriodDays: nu
           <tbody>
             {loadingActive && (
               <tr>
-                <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
+                <td colSpan={7} className="px-4 py-4 text-center text-slate-400">
                   {vi.common.loading}
                 </td>
               </tr>
             )}
             {!loadingActive && activeLoans?.items.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
+                <td colSpan={7} className="px-4 py-4 text-center text-slate-400">
                   {activeLoanSearch ? vi.loan.noSearchResults : vi.loan.noActiveLoans}
                 </td>
               </tr>
@@ -726,6 +750,7 @@ function ActiveLoansPanel({ defaultLoanPeriodDays }: { defaultLoanPeriodDays: nu
               <tr key={loan.id} className="border-t border-slate-100">
                 <td className="px-4 py-2 text-slate-400">{index + 1}</td>
                 <td className="px-4 py-2 text-slate-800">{loan.book.title}</td>
+                <td className="px-4 py-2 font-mono text-xs text-slate-500">{loan.copy.barcode}</td>
                 <td className="px-4 py-2 text-slate-600">{loan.patron.fullName}</td>
                 <td className="px-4 py-2 text-slate-600">{new Date(loan.dueDate).toLocaleDateString("vi-VN")}</td>
                 <td className="px-4 py-2">

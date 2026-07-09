@@ -26,6 +26,7 @@ export async function updateNotificationSettings(autoSendEnabled: boolean): Prom
 interface NotifiableLoan {
   loanId: string;
   bookTitle: string;
+  barcode: string;
   dueDate: Date;
   patronName: string;
   studentCode: string;
@@ -57,6 +58,7 @@ async function getDueSoonLoans(): Promise<NotifiableLoan[]> {
   return rows.map((r) => ({
     loanId: r.id,
     bookTitle: r.copy.book.title,
+    barcode: r.copy.barcode,
     dueDate: r.dueDate,
     patronName: r.patron.fullName,
     studentCode: r.patron.studentCode,
@@ -74,6 +76,7 @@ async function getOverdueLoans(): Promise<NotifiableLoan[]> {
   return rows.map((r) => ({
     loanId: r.id,
     bookTitle: r.copy.book.title,
+    barcode: r.copy.barcode,
     dueDate: r.dueDate,
     patronName: r.patron.fullName,
     studentCode: r.patron.studentCode,
@@ -90,6 +93,7 @@ export async function listDueSoonLoans() {
   return loans.map((l) => ({
     loanId: l.loanId,
     bookTitle: l.bookTitle,
+    barcode: l.barcode,
     dueDate: l.dueDate.toISOString(),
     patronName: l.patronName,
     studentCode: l.studentCode,
@@ -103,6 +107,7 @@ export async function listOverdueForNotify() {
   return loans.map((l) => ({
     loanId: l.loanId,
     bookTitle: l.bookTitle,
+    barcode: l.barcode,
     dueDate: l.dueDate.toISOString(),
     patronName: l.patronName,
     studentCode: l.studentCode,

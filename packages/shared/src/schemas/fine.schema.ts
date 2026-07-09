@@ -20,6 +20,7 @@ export const fineWithDetailsSchema = fineSchema.extend({
     dueDate: z.string(),
     returnedAt: z.string().nullable(),
     book: z.object({ id: z.string(), title: z.string() }),
+    copy: z.object({ id: z.string(), barcode: z.string() }),
   }),
 });
 export type FineWithDetails = z.infer<typeof fineWithDetailsSchema>;

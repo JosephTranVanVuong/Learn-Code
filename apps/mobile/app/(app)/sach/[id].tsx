@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Alert, Image, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { ApiError, DESTRUCTIVE_ROLES, STAFF_ROLES, vi, type CopyStatus } from "@thuvien/shared";
 import { useAuth } from "../../../lib/auth-context";
 import { resolveAssetUrl } from "../../../lib/asset-url";
+import { colors } from "../../../lib/theme";
 import {
   useBook,
   useDeleteBook,
@@ -16,13 +19,51 @@ import {
 import { useAuthors } from "../../../hooks/use-authors";
 import { useCategories } from "../../../hooks/use-categories";
 import { useAddCopies, useDeleteCopy, useUpdateCopy } from "../../../hooks/use-copies";
+import { Card } from "../../../components/ui/Card";
+import { Badge, type BadgeTone } from "../../../components/ui/Badge";
+import { Button } from "../../../components/ui/Button";
 
 const COPY_STATUS_OPTIONS: CopyStatus[] = ["AVAILABLE", "BORROWED", "LOST", "DAMAGED", "WITHDRAWN"];
+
+const COPY_STATUS_TONE: Record<CopyStatus, BadgeTone> = {
+  AVAILABLE: "success",
+  BORROWED: "gold",
+  LOST: "danger",
+  DAMAGED: "danger",
+  WITHDRAWN: "neutral",
+};
 
 function commonCopyLocation(copies: { location: string | null }[]): string {
   if (copies.length === 0) return "";
   const first = copies[0].location ?? "";
   return copies.every((c) => (c.location ?? "") === first) ? first : "";
+}
+
+function inputStyle(extra?: object) {
+  return {
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: "#ffffff",
+    fontSize: 14,
+    ...extra,
+  };
+}
+
+function FieldLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Text style={{ fontSize: 13, fontWeight: "600", color: colors.textSecondary, marginBottom: 4 }}>{children}</Text>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={{ flexDirection: "row", justifyContent: "space-between", marginTop: 8 }}>
+      <Text style={{ fontSize: 12, color: colors.textMuted }}>{label}</Text>
+      <Text style={{ fontSize: 13, color: colors.textPrimary, fontWeight: "500" }}>{value}</Text>
+    </View>
+  );
 }
 
 function Field({
@@ -40,29 +81,61 @@ function Field({
 }) {
   return (
     <View style={{ marginBottom: 14 }}>
-      <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginBottom: 4 }}>{label}</Text>
+      <FieldLabel>{label}</FieldLabel>
       <TextInput
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
         multiline={multiline}
-        style={{
-          borderWidth: 1,
-          borderColor: "#cbd5e1",
-          borderRadius: 8,
-          padding: 10,
-          backgroundColor: "white",
+        style={inputStyle({
           textAlignVertical: multiline ? "top" : "center",
-          minHeight: multiline ? 80 : undefined,
-        }}
+          minHeight: multiline ? 90 : undefined,
+        })}
       />
     </View>
+  );
+}
+
+function ChipPicker<T extends { id: string; name: string }>({
+  items,
+  selectedId,
+  onSelect,
+}: {
+  items: T[] | undefined;
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
+      <View style={{ flexDirection: "row", gap: 8 }}>
+        {items?.map((item) => {
+          const selected = selectedId === item.id;
+          return (
+            <Pressable
+              key={item.id}
+              onPress={() => onSelect(item.id)}
+              style={{
+                paddingHorizontal: 12,
+                paddingVertical: 7,
+                borderRadius: 999,
+                backgroundColor: selected ? colors.navy : "#f1f5f9",
+              }}
+            >
+              <Text style={{ color: selected ? "#ffffff" : colors.textSecondary, fontSize: 12, fontWeight: "600" }}>
+                {item.name}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </ScrollView>
   );
 }
 
 export default function SachDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const isStaff = user ? STAFF_ROLES.includes(user.role) : false;
   const canDelete = user ? DESTRUCTIVE_ROLES.includes(user.role) : false;
@@ -124,6 +197,14 @@ export default function SachDetailScreen() {
     setForm((f) => (f ? { ...f, [key]: value } : f));
   }
 
+  function extractMessage(err: unknown, fallback: string): string {
+    if (err instanceof ApiError) {
+      const body = err.body as { message?: string } | null;
+      return body?.message ?? fallback;
+    }
+    return fallback;
+  }
+
   async function handleSaveBookInfo() {
     if (!form) return;
     setError(null);
@@ -145,15 +226,7 @@ export default function SachDetailScreen() {
     }
   }
 
-  function extractMessage(err: unknown, fallback: string): string {
-    if (err instanceof ApiError) {
-      const body = err.body as { message?: string } | null;
-      return body?.message ?? fallback;
-    }
-    return fallback;
-  }
-
-  async function handleDeleteBook() {
+  function handleDeleteBook() {
     Alert.alert(vi.book.deleteConfirm, undefined, [
       { text: vi.common.cancel, style: "cancel" },
       {
@@ -260,7 +333,7 @@ export default function SachDetailScreen() {
     }
   }
 
-  async function handleDeleteCopy(copyId: string) {
+  function handleDeleteCopy(copyId: string) {
     Alert.alert(vi.copy.deleteConfirm, undefined, [
       { text: vi.common.cancel, style: "cancel" },
       {
@@ -279,330 +352,273 @@ export default function SachDetailScreen() {
 
   if (isLoading || !book || !form) {
     return (
-      <View style={{ flex: 1, paddingTop: 80, backgroundColor: "#f8fafc" }}>
-        <Text style={{ textAlign: "center", color: "#94a3b8" }}>{vi.common.loading}</Text>
+      <View style={{ flex: 1, backgroundColor: colors.background, alignItems: "center", justifyContent: "center" }}>
+        <Text style={{ color: colors.textMuted }}>{vi.common.loading}</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#f8fafc", paddingTop: 56 }} contentContainerStyle={{ padding: 20 }}>
-      <Pressable onPress={() => router.back()}>
-        <Text style={{ color: "#64748b", marginBottom: 12 }}>&larr; {vi.common.back}</Text>
-      </Pressable>
+    <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={{ paddingBottom: 32 }}>
+      <View style={{ backgroundColor: colors.navy, paddingTop: insets.top + 12, paddingBottom: 16, paddingHorizontal: 16 }}>
+        <Pressable
+          onPress={() => router.back()}
+          style={{ flexDirection: "row", alignItems: "center", gap: 4, marginBottom: 12 }}
+        >
+          <Ionicons name="chevron-back" size={20} color="#ffffff" />
+          <Text style={{ color: "#ffffff", fontSize: 14 }}>{vi.common.back}</Text>
+        </Pressable>
+        <Text style={{ fontSize: 18, fontWeight: "700", color: "#ffffff" }} numberOfLines={2}>
+          {book.title}
+        </Text>
+        <Text style={{ fontSize: 13, color: "#c7d2e8", marginTop: 2 }}>{book.author.name}</Text>
+      </View>
 
-      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <View style={{ flex: 1, paddingRight: 12 }}>
-          <Text style={{ fontSize: 18, fontWeight: "700", color: "#1e293b" }}>{book.title}</Text>
-          <Text style={{ color: "#64748b", marginTop: 2 }}>{book.author.name}</Text>
-          <Text style={{ color: "#94a3b8", marginTop: 4, fontSize: 12 }}>{book.category.name}</Text>
-        </View>
+      <View style={{ padding: 16, gap: 12 }}>
+        {error && (
+          <Text
+            style={{ color: colors.dangerText, backgroundColor: colors.dangerBg, padding: 10, borderRadius: 8, fontSize: 13 }}
+          >
+            {error}
+          </Text>
+        )}
+        {info && (
+          <Text
+            style={{ color: colors.successText, backgroundColor: colors.successBg, padding: 10, borderRadius: 8, fontSize: 13 }}
+          >
+            {info}
+          </Text>
+        )}
+
         {canDelete && (
-          <Pressable onPress={handleDeleteBook}>
-            <Text style={{ color: "#dc2626", fontWeight: "600" }}>{vi.common.delete}</Text>
-          </Pressable>
-        )}
-      </View>
-
-      <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 14, marginTop: 14 }}>
-        {book.coverImageUrl ? (
-          <Image
-            source={{ uri: resolveAssetUrl(book.coverImageUrl) ?? undefined }}
-            style={{ width: 100, height: 150, borderRadius: 8, backgroundColor: "#e2e8f0" }}
-            resizeMode="cover"
-          />
-        ) : (
-          <View
-            style={{
-              width: 100,
-              height: 150,
-              borderRadius: 8,
-              borderWidth: 1,
-              borderStyle: "dashed",
-              borderColor: "#cbd5e1",
-              backgroundColor: "#f8fafc",
-              alignItems: "center",
-              justifyContent: "center",
-              padding: 6,
-            }}
-          >
-            <Text style={{ fontSize: 11, color: "#94a3b8", textAlign: "center" }}>{vi.book.noCover}</Text>
+          <View style={{ flexDirection: "row" }}>
+            <Button variant="danger" size="sm" icon="trash-outline" onPress={handleDeleteBook} loading={deleteBook.isPending}>
+              {vi.common.delete}
+            </Button>
           </View>
         )}
-        {isStaff && (
-          <View style={{ gap: 8 }}>
-            <Pressable
-              onPress={handlePickCover}
-              disabled={uploadCover.isPending}
-              style={{ backgroundColor: "#0f172a", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
-            >
-              {uploadCover.isPending ? (
-                <ActivityIndicator color="white" size="small" />
-              ) : (
-                <Text style={{ color: "white", fontSize: 12, fontWeight: "600" }}>
-                  {book.coverImageUrl ? vi.book.changeCover : vi.book.uploadCover}
-                </Text>
-              )}
-            </Pressable>
-            {book.coverImageUrl && canDelete && (
-              <Pressable
-                onPress={handleRemoveCover}
-                disabled={removeCover.isPending}
-                style={{ borderWidth: 1, borderColor: "#cbd5e1", paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8 }}
-              >
-                <Text style={{ color: "#dc2626", fontSize: 12, fontWeight: "600" }}>{vi.book.removeCover}</Text>
-              </Pressable>
-            )}
-          </View>
-        )}
-      </View>
 
-      {error && (
-        <Text style={{ color: "#b91c1c", backgroundColor: "#fef2f2", padding: 10, borderRadius: 8, marginTop: 12 }}>
-          {error}
-        </Text>
-      )}
-      {info && (
-        <Text style={{ color: "#047857", backgroundColor: "#ecfdf5", padding: 10, borderRadius: 8, marginTop: 12 }}>
-          {info}
-        </Text>
-      )}
-
-      {isStaff ? (
-        <View style={{ marginTop: 16 }}>
-          <Text style={{ fontSize: 15, fontWeight: "600", color: "#1e293b", marginBottom: 10 }}>
-            {vi.book.editBook}
-          </Text>
-
-          <Field label={vi.book.title} value={form.title} onChangeText={(v) => updateForm("title", v)} />
-
-          <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginBottom: 4 }}>{vi.book.author}</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-            {authors?.map((author) => (
-              <Pressable
-                key={author.id}
-                onPress={() => updateForm("authorId", author.id)}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 999,
-                  marginRight: 8,
-                  backgroundColor: form.authorId === author.id ? "#0f172a" : "#e2e8f0",
-                }}
-              >
-                <Text style={{ color: form.authorId === author.id ? "white" : "#334155", fontSize: 12 }}>
-                  {author.name}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-
-          <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginBottom: 4 }}>
-            {vi.book.category}
-          </Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 14 }}>
-            {categories?.map((cat) => (
-              <Pressable
-                key={cat.id}
-                onPress={() => updateForm("categoryId", cat.id)}
-                style={{
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 999,
-                  marginRight: 8,
-                  backgroundColor: form.categoryId === cat.id ? "#0f172a" : "#e2e8f0",
-                }}
-              >
-                <Text style={{ color: form.categoryId === cat.id ? "white" : "#334155", fontSize: 12 }}>
-                  {cat.name}
-                </Text>
-              </Pressable>
-            ))}
-          </ScrollView>
-
-          <Field label={vi.book.publisher} value={form.publisher} onChangeText={(v) => updateForm("publisher", v)} />
-          <Field
-            label={vi.book.publishedYear}
-            value={form.publishedYear}
-            onChangeText={(v) => updateForm("publishedYear", v)}
-            keyboardType="numeric"
-          />
-          <Field label={vi.book.isbn} value={form.isbn} onChangeText={(v) => updateForm("isbn", v)} />
-          <Field label={vi.book.language} value={form.language} onChangeText={(v) => updateForm("language", v)} />
-          <Field
-            label={vi.book.description}
-            value={form.description}
-            onChangeText={(v) => updateForm("description", v)}
-            multiline
-          />
-
-          <Pressable
-            onPress={handleSaveBookInfo}
-            disabled={updateBook.isPending}
-            style={{
-              backgroundColor: "#0f172a",
-              padding: 12,
-              borderRadius: 8,
-              opacity: updateBook.isPending ? 0.6 : 1,
-            }}
-          >
-            <Text style={{ color: "white", textAlign: "center", fontWeight: "600" }}>{vi.common.save}</Text>
-          </Pressable>
-        </View>
-      ) : (
-        book.description && <Text style={{ color: "#475569", marginTop: 12 }}>{book.description}</Text>
-      )}
-
-      {isStaff && book.copies.length > 0 && (
-        <View style={{ marginTop: 14 }}>
-          <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginBottom: 4 }}>
-            {vi.copy.location}
-          </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <TextInput
-              value={bulkLocation ?? ""}
-              onChangeText={setBulkLocation}
-              placeholder={
-                book.copies.length > 1 ? vi.book.locationAppliesToAll : vi.copy.location
-              }
-              style={{
-                flex: 1,
-                borderWidth: 1,
-                borderColor: "#cbd5e1",
-                borderRadius: 8,
-                padding: 8,
-                backgroundColor: "white",
-                fontSize: 12,
-              }}
+        <Card style={{ alignItems: "center" }}>
+          {book.coverImageUrl ? (
+            <Image
+              source={{ uri: resolveAssetUrl(book.coverImageUrl) ?? undefined }}
+              style={{ width: 110, height: 165, borderRadius: 8, backgroundColor: colors.border }}
+              resizeMode="cover"
             />
-            <Pressable
-              onPress={handleSaveBulkLocation}
-              disabled={updateCopiesLocation.isPending || bulkLocation === initialBulkLocation}
+          ) : (
+            <View
               style={{
-                backgroundColor: "#0f172a",
-                paddingHorizontal: 14,
-                paddingVertical: 8,
+                width: 110,
+                height: 165,
                 borderRadius: 8,
-                opacity: bulkLocation === initialBulkLocation ? 0.5 : 1,
+                borderWidth: 1,
+                borderStyle: "dashed",
+                borderColor: "#cbd5e1",
+                backgroundColor: colors.background,
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 8,
               }}
             >
-              <Text style={{ color: "white", fontSize: 13, fontWeight: "600" }}>{vi.common.save}</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
-
-      <View style={{ marginTop: 20, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-        <Text style={{ fontSize: 15, fontWeight: "600", color: "#1e293b" }}>
-          {vi.copy.title} ({book.availableCopies}/{book.totalCopies} {vi.book.availability})
-        </Text>
-      </View>
-
-      {isStaff && (
-        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10, gap: 8 }}>
-          <TextInput
-            value={newCopyQty}
-            onChangeText={setNewCopyQty}
-            keyboardType="numeric"
-            style={{
-              borderWidth: 1,
-              borderColor: "#cbd5e1",
-              borderRadius: 8,
-              padding: 8,
-              width: 60,
-              backgroundColor: "white",
-            }}
-          />
-          <TextInput
-            value={newCopyLocation}
-            onChangeText={setNewCopyLocation}
-            placeholder={vi.copy.location}
-            style={{
-              flex: 1,
-              borderWidth: 1,
-              borderColor: "#cbd5e1",
-              borderRadius: 8,
-              padding: 8,
-              backgroundColor: "white",
-            }}
-          />
-          <Pressable
-            onPress={handleAddCopies}
-            style={{ backgroundColor: "#0f172a", paddingHorizontal: 14, paddingVertical: 8, borderRadius: 8 }}
-          >
-            <Text style={{ color: "white", fontSize: 13, fontWeight: "600" }}>{vi.copy.addCopies}</Text>
-          </Pressable>
-        </View>
-      )}
-
-      <View style={{ marginTop: 14 }}>
-        {book.copies.map((copy) => (
-          <View
-            key={copy.id}
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              borderWidth: 1,
-              borderColor: "#e2e8f0",
-              borderRadius: 8,
-              padding: 10,
-              marginBottom: 8,
-              backgroundColor: "white",
-            }}
-          >
-            <View style={{ flex: 1, marginRight: 10 }}>
-              <Text style={{ fontFamily: "monospace", fontSize: 12, color: "#475569" }}>{copy.barcode}</Text>
-              {isStaff ? (
-                <TextInput
-                  key={copy.id}
-                  defaultValue={copy.location ?? ""}
-                  onChangeText={(text) => {
-                    locationDrafts.current[copy.id] = text;
-                  }}
-                  onBlur={() => {
-                    const draft = locationDrafts.current[copy.id];
-                    if (draft !== undefined && draft !== (copy.location ?? "")) {
-                      handleCopyLocationChange(copy.id, draft);
-                    }
-                  }}
-                  placeholder={vi.copy.location}
-                  style={{
-                    fontSize: 11,
-                    color: "#334155",
-                    borderBottomWidth: 1,
-                    borderBottomColor: "#e2e8f0",
-                    marginTop: 2,
-                    paddingVertical: 2,
-                  }}
-                />
-              ) : copy.location ? (
-                <Text style={{ fontSize: 11, color: "#94a3b8" }}>{copy.location}</Text>
-              ) : null}
+              <Ionicons name="image-outline" size={22} color={colors.textMuted} />
+              <Text style={{ fontSize: 11, color: colors.textMuted, textAlign: "center", marginTop: 6 }}>
+                {vi.book.noCover}
+              </Text>
             </View>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              {isStaff ? (
-                <>
-                  <Pressable
-                    onPress={() => cycleStatus(copy.id, copy.status)}
-                    style={{ backgroundColor: "#e2e8f0", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}
-                  >
-                    <Text style={{ fontSize: 11, color: "#334155" }}>{vi.copyStatus[copy.status]}</Text>
-                  </Pressable>
-                  {canDelete && (
-                    <Pressable onPress={() => handleDeleteCopy(copy.id)}>
-                      <Text style={{ color: "#dc2626", fontSize: 12 }}>{vi.common.delete}</Text>
-                    </Pressable>
-                  )}
-                </>
-              ) : (
-                <View style={{ backgroundColor: "#e2e8f0", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 }}>
-                  <Text style={{ fontSize: 11, color: "#334155" }}>{vi.copyStatus[copy.status]}</Text>
-                </View>
+          )}
+          <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 10, textAlign: "center" }}>
+            {book.category.name}
+          </Text>
+          <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+            {book.availableCopies}/{book.totalCopies} {vi.book.availability}
+          </Text>
+          {isStaff && (
+            <View style={{ flexDirection: "row", gap: 8, marginTop: 12 }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon="camera-outline"
+                onPress={handlePickCover}
+                loading={uploadCover.isPending}
+              >
+                {book.coverImageUrl ? vi.book.changeCover : vi.book.uploadCover}
+              </Button>
+              {book.coverImageUrl && canDelete && (
+                <Button
+                  variant="danger"
+                  size="sm"
+                  icon="trash-outline"
+                  onPress={handleRemoveCover}
+                  loading={removeCover.isPending}
+                >
+                  {vi.book.removeCover}
+                </Button>
               )}
             </View>
-          </View>
-        ))}
+          )}
+        </Card>
+
+        {isStaff ? (
+          <Card style={{ gap: 4 }}>
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.navy }}>{vi.book.sectionBasicInfo}</Text>
+            <View style={{ marginTop: 8 }}>
+              <Field label={vi.book.title} value={form.title} onChangeText={(v) => updateForm("title", v)} />
+              <FieldLabel>{vi.book.author}</FieldLabel>
+              <ChipPicker items={authors} selectedId={form.authorId} onSelect={(v) => updateForm("authorId", v)} />
+              <FieldLabel>{vi.book.category}</FieldLabel>
+              <ChipPicker items={categories} selectedId={form.categoryId} onSelect={(v) => updateForm("categoryId", v)} />
+            </View>
+          </Card>
+        ) : null}
+
+        {isStaff ? (
+          <Card style={{ gap: 4 }}>
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.navy }}>{vi.book.sectionPublicationInfo}</Text>
+            <View style={{ marginTop: 8 }}>
+              <Field label={vi.book.publisher} value={form.publisher} onChangeText={(v) => updateForm("publisher", v)} />
+              <Field
+                label={vi.book.publishedYear}
+                value={form.publishedYear}
+                onChangeText={(v) => updateForm("publishedYear", v)}
+                keyboardType="numeric"
+              />
+              <Field label={vi.book.isbn} value={form.isbn} onChangeText={(v) => updateForm("isbn", v)} />
+              <Field label={vi.book.language} value={form.language} onChangeText={(v) => updateForm("language", v)} />
+              <Field
+                label={vi.book.description}
+                value={form.description}
+                onChangeText={(v) => updateForm("description", v)}
+                multiline
+              />
+            </View>
+            <Button onPress={handleSaveBookInfo} loading={updateBook.isPending}>
+              {vi.common.save}
+            </Button>
+          </Card>
+        ) : (
+          <Card style={{ gap: 4 }}>
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.navy }}>{vi.book.sectionPublicationInfo}</Text>
+            {book.publisher && <InfoRow label={vi.book.publisher} value={book.publisher} />}
+            {book.publishedYear && <InfoRow label={vi.book.publishedYear} value={String(book.publishedYear)} />}
+            {book.isbn && <InfoRow label={vi.book.isbn} value={book.isbn} />}
+            {book.language && <InfoRow label={vi.book.language} value={book.language} />}
+            {commonCopyLocation(book.copies) && <InfoRow label={vi.copy.location} value={commonCopyLocation(book.copies)} />}
+            {!book.publisher && !book.publishedYear && !book.isbn && !book.language && !commonCopyLocation(book.copies) && (
+              <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>{vi.common.noData}</Text>
+            )}
+            <View style={{ borderTopWidth: 1, borderTopColor: colors.border, marginTop: 12, paddingTop: 12 }}>
+              <Text style={{ fontSize: 13, fontWeight: "700", color: colors.navy }}>{vi.book.description}</Text>
+              <Text style={{ fontSize: 13, color: colors.textSecondary, marginTop: 6, lineHeight: 20 }}>
+                {book.description || vi.book.noDescription}
+              </Text>
+            </View>
+          </Card>
+        )}
+
+        {isStaff && book.copies.length > 0 && (
+          <Card style={{ gap: 8 }}>
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.navy }}>{vi.book.sectionCopiesLocation}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <TextInput
+                value={bulkLocation ?? ""}
+                onChangeText={setBulkLocation}
+                placeholder={book.copies.length > 1 ? vi.book.locationAppliesToAll : vi.copy.location}
+                style={inputStyle({ flex: 1, fontSize: 12 })}
+              />
+              <Button
+                size="sm"
+                onPress={handleSaveBulkLocation}
+                disabled={bulkLocation === initialBulkLocation}
+                loading={updateCopiesLocation.isPending}
+              >
+                {vi.common.save}
+              </Button>
+            </View>
+          </Card>
+        )}
+
+        <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+          <Text style={{ fontSize: 15, fontWeight: "700", color: colors.navy }}>
+            {vi.copy.title} ({book.availableCopies}/{book.totalCopies})
+          </Text>
+        </View>
+
+        {isStaff && (
+          <Card style={{ gap: 8 }}>
+            <FieldLabel>{vi.copy.addCopies}</FieldLabel>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <TextInput
+                value={newCopyQty}
+                onChangeText={setNewCopyQty}
+                keyboardType="numeric"
+                style={inputStyle({ width: 56, textAlign: "center" })}
+              />
+              <TextInput
+                value={newCopyLocation}
+                onChangeText={setNewCopyLocation}
+                placeholder={vi.copy.location}
+                style={inputStyle({ flex: 1 })}
+              />
+              <Button size="sm" icon="add-outline" onPress={handleAddCopies} loading={addCopies.isPending}>
+                {vi.copy.addCopies}
+              </Button>
+            </View>
+          </Card>
+        )}
+
+        <View style={{ gap: 8 }}>
+          {book.copies.map((copy) => (
+            <Card key={copy.id} style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+              <View style={{ flex: 1, marginRight: 10 }}>
+                <Text style={{ fontFamily: "monospace", fontSize: 13, fontWeight: "600", color: colors.textPrimary }}>
+                  {copy.barcode}
+                </Text>
+                {isStaff ? (
+                  <TextInput
+                    key={copy.id}
+                    defaultValue={copy.location ?? ""}
+                    onChangeText={(text) => {
+                      locationDrafts.current[copy.id] = text;
+                    }}
+                    onBlur={() => {
+                      const draft = locationDrafts.current[copy.id];
+                      if (draft !== undefined && draft !== (copy.location ?? "")) {
+                        handleCopyLocationChange(copy.id, draft);
+                      }
+                    }}
+                    placeholder={vi.copy.location}
+                    style={{
+                      fontSize: 12,
+                      color: colors.textSecondary,
+                      borderBottomWidth: 1,
+                      borderBottomColor: colors.border,
+                      marginTop: 4,
+                      paddingVertical: 2,
+                    }}
+                  />
+                ) : copy.location ? (
+                  <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>{copy.location}</Text>
+                ) : null}
+              </View>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                {isStaff ? (
+                  <>
+                    <Pressable onPress={() => cycleStatus(copy.id, copy.status)}>
+                      <Badge tone={COPY_STATUS_TONE[copy.status]}>{vi.copyStatus[copy.status]}</Badge>
+                    </Pressable>
+                    {canDelete && (
+                      <Pressable onPress={() => handleDeleteCopy(copy.id)}>
+                        <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                      </Pressable>
+                    )}
+                  </>
+                ) : (
+                  <Badge tone={COPY_STATUS_TONE[copy.status]}>{vi.copyStatus[copy.status]}</Badge>
+                )}
+              </View>
+            </Card>
+          ))}
+        </View>
       </View>
     </ScrollView>
   );
