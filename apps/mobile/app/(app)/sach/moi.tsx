@@ -49,6 +49,8 @@ export default function ThemSachScreen() {
     publisher: "",
     publishedYear: "",
     isbn: "",
+    classificationNumber: "",
+    authorMark: "",
     initialCopies: "1",
     location: "",
   });
@@ -56,6 +58,18 @@ export default function ThemSachScreen() {
 
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function handleCategoryChange(categoryId: string) {
+    setForm((f) => {
+      const cat = categories?.find((c) => c.id === categoryId);
+      const shouldAutoFill = !f.classificationNumber && Boolean(cat?.ddcPrefix);
+      return {
+        ...f,
+        categoryId,
+        classificationNumber: shouldAutoFill ? cat!.ddcPrefix! : f.classificationNumber,
+      };
+    });
   }
 
   async function handleSubmit() {
@@ -72,6 +86,8 @@ export default function ThemSachScreen() {
         publisher: form.publisher || undefined,
         publishedYear: form.publishedYear ? Number(form.publishedYear) : undefined,
         isbn: form.isbn || undefined,
+        classificationNumber: form.classificationNumber || undefined,
+        authorMark: form.authorMark || undefined,
         initialCopies: Number(form.initialCopies) || 0,
         location: form.location || undefined,
       });
@@ -128,7 +144,7 @@ export default function ThemSachScreen() {
           {categories?.map((cat) => (
             <Pressable
               key={cat.id}
-              onPress={() => update("categoryId", cat.id)}
+              onPress={() => handleCategoryChange(cat.id)}
               style={{
                 paddingHorizontal: 12,
                 paddingVertical: 6,
@@ -152,6 +168,12 @@ export default function ThemSachScreen() {
           keyboardType="numeric"
         />
         <Field label={vi.book.isbn} value={form.isbn} onChangeText={(v) => update("isbn", v)} />
+        <Field
+          label={vi.book.classificationNumber}
+          value={form.classificationNumber}
+          onChangeText={(v) => update("classificationNumber", v)}
+        />
+        <Field label={vi.book.authorMark} value={form.authorMark} onChangeText={(v) => update("authorMark", v)} />
         <Field
           label={vi.book.initialCopies}
           value={form.initialCopies}

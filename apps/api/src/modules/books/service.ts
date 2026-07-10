@@ -5,6 +5,7 @@ import type {
   BookQuery,
   BookWithAvailability,
   CreateBookInput,
+  SpineLabelExportSummaryItem,
   UpdateBookInput,
 } from "@thuvien/shared";
 import { generateBarcode } from "../../lib/barcode";
@@ -26,7 +27,9 @@ function toBookWithAvailability(row: BookRow): BookWithAvailability {
     description: row.description,
     coverImageUrl: row.coverImageUrl,
     categoryId: row.categoryId,
-    category: { id: row.category.id, name: row.category.name, slug: row.category.slug },
+    classificationNumber: row.classificationNumber,
+    authorMark: row.authorMark,
+    category: { id: row.category.id, name: row.category.name, slug: row.category.slug, ddcPrefix: row.category.ddcPrefix },
     author: { id: row.author.id, name: row.author.name },
     totalCopies,
     availableCopies,
@@ -44,6 +47,7 @@ function toBookDetail(row: BookRow): BookDetail {
       location: c.location,
       notes: c.notes,
       barcodePrintedAt: c.barcodePrintedAt?.toISOString() ?? null,
+      spineLabelPrintedAt: c.spineLabelPrintedAt?.toISOString() ?? null,
     })),
   };
 }
@@ -71,6 +75,34 @@ export async function getBarcodeExportSummary(query: {
       categoryName: row.category.name,
       totalCopies: row.copies.length,
       unprintedCopies: row.copies.filter((c) => !c.barcodePrintedAt).length,
+    }));
+}
+
+export async function getSpineLabelExportSummary(query: {
+  search?: string;
+  categoryId?: string;
+}): Promise<SpineLabelExportSummaryItem[]> {
+  const rows = await prisma.book.findMany({
+    where: {
+      isDeleted: false,
+      ...(query.categoryId ? { categoryId: query.categoryId } : {}),
+      ...(query.search ? { title: { contains: query.search } } : {}),
+    },
+    include: { author: true, category: true, copies: true },
+    orderBy: { title: "asc" },
+  });
+
+  return rows
+    .filter((row) => row.copies.length > 0)
+    .map((row) => ({
+      bookId: row.id,
+      title: row.title,
+      authorName: row.author.name,
+      categoryName: row.category.name,
+      classificationNumber: row.classificationNumber,
+      authorMark: row.authorMark,
+      totalCopies: row.copies.length,
+      unprintedCopies: row.copies.filter((c) => !c.spineLabelPrintedAt).length,
     }));
 }
 
@@ -129,6 +161,8 @@ export async function createBook(input: CreateBookInput): Promise<BookDetail> {
       isbn: input.isbn,
       language: input.language,
       description: input.description,
+      classificationNumber: input.classificationNumber,
+      authorMark: input.authorMark,
     },
   });
 
@@ -162,6 +196,8 @@ export async function updateBook(id: string, input: UpdateBookInput): Promise<Bo
       language: input.language,
       description: input.description,
       coverImageUrl: input.coverImageUrl,
+      classificationNumber: input.classificationNumber,
+      authorMark: input.authorMark,
     },
   });
   return getBook(id);

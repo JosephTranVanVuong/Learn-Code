@@ -168,6 +168,8 @@ export default function SachDetailScreen() {
     isbn: string;
     language: string;
     description: string;
+    classificationNumber: string;
+    authorMark: string;
   } | null>(null);
 
   useEffect(() => {
@@ -189,12 +191,27 @@ export default function SachDetailScreen() {
         isbn: book.isbn ?? "",
         language: book.language ?? "",
         description: book.description ?? "",
+        classificationNumber: book.classificationNumber ?? "",
+        authorMark: book.authorMark ?? "",
       });
     }
   }, [book, form]);
 
   function updateForm<K extends keyof NonNullable<typeof form>>(key: K, value: string) {
     setForm((f) => (f ? { ...f, [key]: value } : f));
+  }
+
+  function handleCategoryChange(categoryId: string) {
+    setForm((f) => {
+      if (!f) return f;
+      const cat = categories?.find((c) => c.id === categoryId);
+      const shouldAutoFill = !f.classificationNumber && Boolean(cat?.ddcPrefix);
+      return {
+        ...f,
+        categoryId,
+        classificationNumber: shouldAutoFill ? cat!.ddcPrefix! : f.classificationNumber,
+      };
+    });
   }
 
   function extractMessage(err: unknown, fallback: string): string {
@@ -219,6 +236,8 @@ export default function SachDetailScreen() {
         isbn: form.isbn || undefined,
         language: form.language || undefined,
         description: form.description || undefined,
+        classificationNumber: form.classificationNumber || undefined,
+        authorMark: form.authorMark || undefined,
       });
       setInfo(`${vi.common.save} ✓`);
     } catch (err) {
@@ -466,7 +485,17 @@ export default function SachDetailScreen() {
               <FieldLabel>{vi.book.author}</FieldLabel>
               <ChipPicker items={authors} selectedId={form.authorId} onSelect={(v) => updateForm("authorId", v)} />
               <FieldLabel>{vi.book.category}</FieldLabel>
-              <ChipPicker items={categories} selectedId={form.categoryId} onSelect={(v) => updateForm("categoryId", v)} />
+              <ChipPicker items={categories} selectedId={form.categoryId} onSelect={handleCategoryChange} />
+              <Field
+                label={vi.book.classificationNumber}
+                value={form.classificationNumber}
+                onChangeText={(v) => updateForm("classificationNumber", v)}
+              />
+              <Field
+                label={vi.book.authorMark}
+                value={form.authorMark}
+                onChangeText={(v) => updateForm("authorMark", v)}
+              />
             </View>
           </Card>
         ) : null}
@@ -503,6 +532,12 @@ export default function SachDetailScreen() {
             {book.isbn && <InfoRow label={vi.book.isbn} value={book.isbn} />}
             {book.language && <InfoRow label={vi.book.language} value={book.language} />}
             {commonCopyLocation(book.copies) && <InfoRow label={vi.copy.location} value={commonCopyLocation(book.copies)} />}
+            {(book.classificationNumber || book.authorMark) && (
+              <InfoRow
+                label={vi.book.callNumber}
+                value={[book.classificationNumber, book.authorMark].filter(Boolean).join(" ")}
+              />
+            )}
             {!book.publisher && !book.publishedYear && !book.isbn && !book.language && !commonCopyLocation(book.copies) && (
               <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>{vi.common.noData}</Text>
             )}

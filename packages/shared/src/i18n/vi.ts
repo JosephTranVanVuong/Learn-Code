@@ -83,6 +83,8 @@ export const vi = {
     bookCount: "Số sách",
     deleteConfirm: "Xóa thể loại này?",
     deleteBlocked: "Không thể xóa thể loại đang có sách",
+    ddcPrefix: "Mã DDC gợi ý",
+    ddcPrefixPlaceholder: "VD: 220",
   },
   author: {
     title: "Tác giả",
@@ -142,6 +144,11 @@ export const vi = {
     sectionBasicInfo: "Thông tin cơ bản",
     sectionPublicationInfo: "Thông tin xuất bản",
     sectionCopiesLocation: "Số lượng & vị trí",
+    classificationNumber: "Số phân loại",
+    classificationNumberPlaceholder: "VD: 220 (tự điền theo thể loại, có thể sửa)",
+    authorMark: "Ký hiệu tác giả",
+    authorMarkPlaceholder: "VD: K312",
+    callNumber: "Ký hiệu xếp giá",
   },
   copy: {
     title: "Bản sao",
@@ -161,6 +168,12 @@ export const vi = {
     barcodePrinted: "Đã in",
     barcodeNotPrinted: "Chưa in",
     bulkExportBarcodes: "Xuất mã vạch hàng loạt",
+    printSpineLabels: "In nhãn gáy",
+    printSelectedSpineLabels: "Xuất file Word để in",
+    spineLabelPrintStatus: "Tình trạng in nhãn gáy",
+    spineLabelPrinted: "Đã in",
+    spineLabelNotPrinted: "Chưa in",
+    bulkExportSpineLabels: "Xuất nhãn gáy hàng loạt",
   },
   publicCatalog: {
     title: "Tra cứu sách",

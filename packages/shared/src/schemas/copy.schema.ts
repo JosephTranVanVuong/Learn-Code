@@ -9,6 +9,7 @@ export const copySchema = z.object({
   location: z.string().nullable(),
   notes: z.string().nullable(),
   barcodePrintedAt: z.string().nullable(),
+  spineLabelPrintedAt: z.string().nullable(),
 });
 export type Copy = z.infer<typeof copySchema>;
 
@@ -55,3 +56,26 @@ export const barcodeExportSummaryItemSchema = z.object({
   unprintedCopies: z.number().int(),
 });
 export type BarcodeExportSummaryItem = z.infer<typeof barcodeExportSummaryItemSchema>;
+
+export const exportSpineLabelsInputSchema = z.object({
+  copyIds: z.array(z.string().min(1)).min(1, "Vui lòng chọn ít nhất 1 bản sao"),
+});
+export type ExportSpineLabelsInput = z.infer<typeof exportSpineLabelsInputSchema>;
+
+export const exportSpineLabelsBulkInputSchema = z.object({
+  bookIds: z.array(z.string().min(1)).min(1, "Vui lòng chọn ít nhất 1 sách"),
+  onlyUnprinted: z.boolean().default(true),
+});
+export type ExportSpineLabelsBulkInput = z.infer<typeof exportSpineLabelsBulkInputSchema>;
+
+export const spineLabelExportSummaryItemSchema = z.object({
+  bookId: z.string(),
+  title: z.string(),
+  authorName: z.string(),
+  categoryName: z.string(),
+  classificationNumber: z.string().nullable(),
+  authorMark: z.string().nullable(),
+  totalCopies: z.number().int(),
+  unprintedCopies: z.number().int(),
+});
+export type SpineLabelExportSummaryItem = z.infer<typeof spineLabelExportSummaryItemSchema>;

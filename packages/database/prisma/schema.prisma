@@ -81,6 +81,7 @@ model Category {
   id        String   @id @default(cuid())
   name      String   @unique
   slug      String   @unique
+  ddcPrefix String?
   books     Book[]
   createdAt DateTime @default(now())
 }
@@ -105,6 +106,8 @@ model Book {
   coverImageUrl String?
   categoryId    String
   category      Category   @relation(fields: [categoryId], references: [id])
+  classificationNumber String?
+  authorMark           String?
   copies        BookCopy[]
   isDeleted     Boolean    @default(false)
   createdAt     DateTime   @default(now())
@@ -124,6 +127,7 @@ model BookCopy {
   location        String?
   notes           String?
   barcodePrintedAt DateTime?
+  spineLabelPrintedAt DateTime?
   loans           Loan[]
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt

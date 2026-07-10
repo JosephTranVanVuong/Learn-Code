@@ -30,6 +30,8 @@ export default function ThemSachPage() {
     isbn: "",
     language: "Tiếng Việt",
     description: "",
+    classificationNumber: "",
+    authorMark: "",
     initialCopies: "1",
     location: "",
   });
@@ -45,6 +47,18 @@ export default function ThemSachPage() {
 
   function update<K extends keyof typeof form>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  function handleCategoryChange(categoryId: string) {
+    setForm((f) => {
+      const cat = categories?.find((c) => c.id === categoryId);
+      const shouldAutoFill = !f.classificationNumber && Boolean(cat?.ddcPrefix);
+      return {
+        ...f,
+        categoryId,
+        classificationNumber: shouldAutoFill ? cat!.ddcPrefix! : f.classificationNumber,
+      };
+    });
   }
 
   const selectedAuthor = authors?.find((a) => a.id === form.authorId);
@@ -87,6 +101,8 @@ export default function ThemSachPage() {
         isbn: form.isbn || undefined,
         language: form.language || undefined,
         description: form.description || undefined,
+        classificationNumber: form.classificationNumber || undefined,
+        authorMark: form.authorMark || undefined,
         initialCopies: Number(form.initialCopies) || 0,
         location: form.location || undefined,
       });
@@ -214,7 +230,7 @@ export default function ThemSachPage() {
                   <select
                     required
                     value={form.categoryId}
-                    onChange={(e) => update("categoryId", e.target.value)}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
                     className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
                   >
                     <option value="" disabled>
@@ -226,6 +242,24 @@ export default function ThemSachPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">{vi.book.classificationNumber}</label>
+                  <input
+                    value={form.classificationNumber}
+                    onChange={(e) => update("classificationNumber", e.target.value)}
+                    placeholder={vi.book.classificationNumberPlaceholder}
+                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700">{vi.book.authorMark}</label>
+                  <input
+                    value={form.authorMark}
+                    onChange={(e) => update("authorMark", e.target.value)}
+                    placeholder={vi.book.authorMarkPlaceholder}
+                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                  />
                 </div>
               </div>
             </div>

@@ -15,6 +15,8 @@ export const bookSchema = z.object({
   description: z.string().nullable(),
   coverImageUrl: z.string().nullable(),
   categoryId: z.string(),
+  classificationNumber: z.string().nullable(),
+  authorMark: z.string().nullable(),
 });
 export type Book = z.infer<typeof bookSchema>;
 
@@ -40,6 +42,8 @@ export const createBookInputSchema = z.object({
   isbn: z.string().optional(),
   language: z.string().optional(),
   description: z.string().optional(),
+  classificationNumber: z.string().optional(),
+  authorMark: z.string().optional(),
   initialCopies: z.coerce.number().int().min(0).max(50).default(1),
   location: z.string().optional(),
 });

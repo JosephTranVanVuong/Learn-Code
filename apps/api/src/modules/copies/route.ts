@@ -1,6 +1,18 @@
 import type { FastifyInstance } from "fastify";
-import { DESTRUCTIVE_ROLES, exportBarcodesInputSchema, STAFF_ROLES, updateCopyInputSchema } from "@thuvien/shared";
-import { deleteCopy, exportBarcodesForCopies, getCopyByBarcode, updateCopy } from "./service";
+import {
+  DESTRUCTIVE_ROLES,
+  exportBarcodesInputSchema,
+  exportSpineLabelsInputSchema,
+  STAFF_ROLES,
+  updateCopyInputSchema,
+} from "@thuvien/shared";
+import {
+  deleteCopy,
+  exportBarcodesForCopies,
+  exportSpineLabelsForCopies,
+  getCopyByBarcode,
+  updateCopy,
+} from "./service";
 
 export async function copiesRoutes(app: FastifyInstance) {
   app.get(
@@ -56,6 +68,22 @@ export async function copiesRoutes(app: FastifyInstance) {
         return reply.code(404).send({ message: "Không tìm thấy bản sao nào phù hợp" });
       }
       reply.header("Content-Disposition", 'attachment; filename="nhan-ma-vach.docx"');
+      return reply
+        .type("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        .send(buffer);
+    },
+  );
+
+  app.post(
+    "/export-spine-labels",
+    { preHandler: [app.authenticate, app.requireRole(...STAFF_ROLES)] },
+    async (request, reply) => {
+      const body = exportSpineLabelsInputSchema.parse(request.body);
+      const buffer = await exportSpineLabelsForCopies(body.copyIds);
+      if (!buffer) {
+        return reply.code(404).send({ message: "Không tìm thấy bản sao nào phù hợp" });
+      }
+      reply.header("Content-Disposition", 'attachment; filename="nhan-gay-sach.docx"');
       return reply
         .type("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
         .send(buffer);

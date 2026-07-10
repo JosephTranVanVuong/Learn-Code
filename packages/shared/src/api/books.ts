@@ -11,6 +11,8 @@ import type {
 import type {
   BarcodeExportSummaryItem,
   ExportBarcodesBulkInput,
+  ExportSpineLabelsBulkInput,
+  SpineLabelExportSummaryItem,
   UpdateBookCopiesLocationInput,
 } from "../schemas/copy.schema";
 
@@ -54,5 +56,9 @@ export function createBooksApi(client: ApiClient) {
       client.get<BarcodeExportSummaryItem[]>(`/api/v1/books/barcode-export-summary${toQueryString(query)}`),
     exportBarcodesBulk: (input: ExportBarcodesBulkInput) =>
       client.postBlob("/api/v1/books/export-barcodes-bulk", input),
+    spineLabelExportSummary: (query: { search?: string; categoryId?: string } = {}) =>
+      client.get<SpineLabelExportSummaryItem[]>(`/api/v1/books/spine-label-export-summary${toQueryString(query)}`),
+    exportSpineLabelsBulk: (input: ExportSpineLabelsBulkInput) =>
+      client.postBlob("/api/v1/books/export-spine-labels-bulk", input),
   };
 }

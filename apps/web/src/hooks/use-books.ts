@@ -26,6 +26,13 @@ export function useBarcodeExportSummary(query: { search?: string; categoryId?: s
   });
 }
 
+export function useSpineLabelExportSummary(query: { search?: string; categoryId?: string } = {}) {
+  return useQuery({
+    queryKey: ["books", "spine-label-export-summary", query],
+    queryFn: () => booksApi.spineLabelExportSummary(query),
+  });
+}
+
 export function useCreateBook() {
   const qc = useQueryClient();
   return useMutation({

@@ -2,11 +2,18 @@ import { prisma } from "@thuvien/database";
 import type { Category, CreateCategoryInput, UpdateCategoryInput } from "@thuvien/shared";
 import { slugify } from "../../lib/slugify";
 
-function toCategory(row: { id: string; name: string; slug: string; _count?: { books: number } }): Category {
+function toCategory(row: {
+  id: string;
+  name: string;
+  slug: string;
+  ddcPrefix: string | null;
+  _count?: { books: number };
+}): Category {
   return {
     id: row.id,
     name: row.name,
     slug: row.slug,
+    ddcPrefix: row.ddcPrefix,
     bookCount: row._count?.books,
   };
 }
@@ -27,7 +34,9 @@ export async function createCategory(input: CreateCategoryInput): Promise<Catego
     attempt += 1;
     slug = `${baseSlug}-${attempt}`;
   }
-  const row = await prisma.category.create({ data: { name: input.name, slug } });
+  const row = await prisma.category.create({
+    data: { name: input.name, slug, ddcPrefix: input.ddcPrefix || null },
+  });
   return toCategory(row);
 }
 
@@ -36,7 +45,10 @@ export async function updateCategory(id: string, input: UpdateCategoryInput): Pr
   if (!existing) return null;
   const row = await prisma.category.update({
     where: { id },
-    data: { name: input.name ?? existing.name },
+    data: {
+      name: input.name ?? existing.name,
+      ddcPrefix: input.ddcPrefix !== undefined ? input.ddcPrefix || null : existing.ddcPrefix,
+    },
   });
   return toCategory(row);
 }

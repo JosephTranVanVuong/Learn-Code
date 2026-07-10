@@ -5,6 +5,7 @@ import {
   createCopiesInputSchema,
   DESTRUCTIVE_ROLES,
   exportBarcodesBulkInputSchema,
+  exportSpineLabelsBulkInputSchema,
   STAFF_ROLES,
   updateBookCopiesLocationInputSchema,
   updateBookInputSchema,
@@ -14,11 +15,18 @@ import {
   deleteBook,
   getBarcodeExportSummary,
   getBook,
+  getSpineLabelExportSummary,
   listBooks,
   updateBook,
   updateBookCover,
 } from "./service";
-import { addCopies, exportBarcodesBulkForBooks, listCopiesForBook, updateAllCopiesLocationForBook } from "../copies/service";
+import {
+  addCopies,
+  exportBarcodesBulkForBooks,
+  exportSpineLabelsBulkForBooks,
+  listCopiesForBook,
+  updateAllCopiesLocationForBook,
+} from "../copies/service";
 import { deleteCoverImageFile, isAllowedImageMime, saveCoverImage } from "../../lib/uploads";
 import { generateImportTemplate, importBooksFromExcel } from "./import";
 import { exportBooksToExcel } from "./export";
@@ -219,6 +227,32 @@ export async function booksRoutes(app: FastifyInstance) {
         return reply.code(404).send({ message: "Không có bản sao nào phù hợp để xuất" });
       }
       reply.header("Content-Disposition", 'attachment; filename="nhan-ma-vach-hang-loat.docx"');
+      return reply
+        .type("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        .send(buffer);
+    },
+  );
+
+  app.get(
+    "/spine-label-export-summary",
+    { preHandler: [app.authenticate, app.requireRole(...STAFF_ROLES)] },
+    async (request, reply) => {
+      const { search, categoryId } = request.query as { search?: string; categoryId?: string };
+      const summary = await getSpineLabelExportSummary({ search, categoryId });
+      return reply.send(summary);
+    },
+  );
+
+  app.post(
+    "/export-spine-labels-bulk",
+    { preHandler: [app.authenticate, app.requireRole(...STAFF_ROLES)] },
+    async (request, reply) => {
+      const body = exportSpineLabelsBulkInputSchema.parse(request.body);
+      const buffer = await exportSpineLabelsBulkForBooks(body.bookIds, body.onlyUnprinted);
+      if (!buffer) {
+        return reply.code(404).send({ message: "Không có bản sao nào phù hợp để xuất" });
+      }
+      reply.header("Content-Disposition", 'attachment; filename="nhan-gay-hang-loat.docx"');
       return reply
         .type("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
         .send(buffer);

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Barcode, Download, Plus, Upload } from "lucide-react";
+import { Barcode, Download, Plus, Tag, Upload } from "lucide-react";
 import { ApiError, STAFF_ROLES, vi } from "@thuvien/shared";
 import { useAuth } from "@/lib/auth-context";
 import { resolveAssetUrl } from "@/lib/asset-url";
@@ -65,6 +65,9 @@ export default function SachPage() {
             </ButtonLink>
             <ButtonLink icon={Barcode} variant="secondary" href="/sach/xuat-ma-vach">
               {vi.copy.bulkExportBarcodes}
+            </ButtonLink>
+            <ButtonLink icon={Tag} variant="secondary" href="/sach/xuat-nhan-gay">
+              {vi.copy.bulkExportSpineLabels}
             </ButtonLink>
             <ButtonLink icon={Plus} href="/sach/moi">
               {vi.book.addNew}

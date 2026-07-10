@@ -21,8 +21,10 @@ export default function TheLoaiPage() {
   const deleteCategory = useDeleteCategory();
 
   const [newName, setNewName] = useState("");
+  const [newDdcPrefix, setNewDdcPrefix] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [editingDdcPrefix, setEditingDdcPrefix] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   function extractMessage(err: unknown, fallback: string): string {
@@ -38,8 +40,9 @@ export default function TheLoaiPage() {
     setError(null);
     if (!newName.trim()) return;
     try {
-      await createCategory.mutateAsync({ name: newName.trim() });
+      await createCategory.mutateAsync({ name: newName.trim(), ddcPrefix: newDdcPrefix.trim() || undefined });
       setNewName("");
+      setNewDdcPrefix("");
     } catch (err) {
       setError(extractMessage(err, vi.common.error));
     }
@@ -48,7 +51,10 @@ export default function TheLoaiPage() {
   async function handleUpdate(id: string) {
     setError(null);
     try {
-      await updateCategory.mutateAsync({ id, input: { name: editingName.trim() } });
+      await updateCategory.mutateAsync({
+        id,
+        input: { name: editingName.trim(), ddcPrefix: editingDdcPrefix.trim() },
+      });
       setEditingId(null);
     } catch (err) {
       setError(extractMessage(err, vi.common.error));
@@ -76,6 +82,12 @@ export default function TheLoaiPage() {
           placeholder={vi.category.name}
           className="w-64 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
         />
+        <input
+          value={newDdcPrefix}
+          onChange={(e) => setNewDdcPrefix(e.target.value)}
+          placeholder={vi.category.ddcPrefixPlaceholder}
+          className="w-32 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+        />
         <Button icon={Plus} type="submit" disabled={createCategory.isPending}>
           {vi.category.addNew}
         </Button>
@@ -91,6 +103,7 @@ export default function TheLoaiPage() {
             <tr>
               <th className="px-4 py-2">{vi.common.stt}</th>
               <th className="px-4 py-2">{vi.category.name}</th>
+              <th className="px-4 py-2">{vi.category.ddcPrefix}</th>
               <th className="px-4 py-2">{vi.category.bookCount}</th>
               <th className="px-4 py-2"></th>
             </tr>
@@ -98,14 +111,14 @@ export default function TheLoaiPage() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={4} className="px-4 py-4 text-center text-slate-400">
+                <td colSpan={5} className="px-4 py-4 text-center text-slate-400">
                   {vi.common.loading}
                 </td>
               </tr>
             )}
             {!isLoading && categories?.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-4 text-center text-slate-400">
+                <td colSpan={5} className="px-4 py-4 text-center text-slate-400">
                   {vi.common.noData}
                 </td>
               </tr>
@@ -123,6 +136,18 @@ export default function TheLoaiPage() {
                     />
                   ) : (
                     cat.name
+                  )}
+                </td>
+                <td className="px-4 py-2 text-slate-600">
+                  {editingId === cat.id ? (
+                    <input
+                      value={editingDdcPrefix}
+                      onChange={(e) => setEditingDdcPrefix(e.target.value)}
+                      placeholder={vi.category.ddcPrefixPlaceholder}
+                      className="w-24 rounded-md border border-slate-300 px-2 py-1 text-sm"
+                    />
+                  ) : (
+                    cat.ddcPrefix ?? "—"
                   )}
                 </td>
                 <td className="px-4 py-2 text-slate-600">{cat.bookCount ?? 0}</td>
@@ -145,6 +170,7 @@ export default function TheLoaiPage() {
                         onClick={() => {
                           setEditingId(cat.id);
                           setEditingName(cat.name);
+                          setEditingDdcPrefix(cat.ddcPrefix ?? "");
                         }}
                       >
                         {vi.common.edit}

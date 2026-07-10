@@ -59,6 +59,8 @@ export default function ChiTietSachPage() {
     isbn: string;
     language: string;
     description: string;
+    classificationNumber: string;
+    authorMark: string;
     location: string;
   } | null>(null);
   const [initialLocation, setInitialLocation] = useState("");
@@ -78,6 +80,8 @@ export default function ChiTietSachPage() {
         isbn: book.isbn ?? "",
         language: book.language ?? "",
         description: book.description ?? "",
+        classificationNumber: book.classificationNumber ?? "",
+        authorMark: book.authorMark ?? "",
         location,
       });
       setInitialLocation(location);
@@ -106,6 +110,8 @@ export default function ChiTietSachPage() {
         isbn: form.isbn || undefined,
         language: form.language || undefined,
         description: form.description || undefined,
+        classificationNumber: form.classificationNumber || undefined,
+        authorMark: form.authorMark || undefined,
       });
       if (form.location !== initialLocation) {
         await updateCopiesLocation.mutateAsync({ location: form.location });
@@ -299,6 +305,14 @@ export default function ChiTietSachPage() {
                   <span className="text-slate-600">{book.publishedYear}</span>
                 </p>
               )}
+              {(book.classificationNumber || book.authorMark) && (
+                <p>
+                  <span className="font-medium text-slate-700">{vi.book.callNumber}:</span>{" "}
+                  <span className="text-slate-600">
+                    {[book.classificationNumber, book.authorMark].filter(Boolean).join(" ")}
+                  </span>
+                </p>
+              )}
               {book.description && (
                 <p>
                   <span className="font-medium text-slate-700">{vi.book.description}:</span>{" "}
@@ -341,7 +355,15 @@ export default function ChiTietSachPage() {
                     <label className="block text-sm font-medium text-slate-700">{vi.book.category}</label>
                     <select
                       value={form.categoryId}
-                      onChange={(e) => setForm({ ...form, categoryId: e.target.value })}
+                      onChange={(e) => {
+                        const cat = categories?.find((c) => c.id === e.target.value);
+                        const shouldAutoFill = !form.classificationNumber && Boolean(cat?.ddcPrefix);
+                        setForm({
+                          ...form,
+                          categoryId: e.target.value,
+                          classificationNumber: shouldAutoFill ? cat!.ddcPrefix! : form.classificationNumber,
+                        });
+                      }}
                       className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
                     >
                       {categories?.map((cat) => (
@@ -350,6 +372,24 @@ export default function ChiTietSachPage() {
                         </option>
                       ))}
                     </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">{vi.book.classificationNumber}</label>
+                    <input
+                      value={form.classificationNumber}
+                      onChange={(e) => setForm({ ...form, classificationNumber: e.target.value })}
+                      placeholder={vi.book.classificationNumberPlaceholder}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700">{vi.book.authorMark}</label>
+                    <input
+                      value={form.authorMark}
+                      onChange={(e) => setForm({ ...form, authorMark: e.target.value })}
+                      placeholder={vi.book.authorMarkPlaceholder}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                    />
                   </div>
                 </div>
               </div>
@@ -433,9 +473,14 @@ export default function ChiTietSachPage() {
             {vi.copy.title} ({book.availableCopies}/{book.totalCopies} {vi.book.availability})
           </h2>
           {isStaff && book.copies.length > 0 && (
-            <ButtonLink icon={Printer} variant="secondary" size="sm" href={`/sach/${params.id}/ma-vach`}>
-              {vi.copy.printBarcodes}
-            </ButtonLink>
+            <div className="flex gap-2">
+              <ButtonLink icon={Printer} variant="secondary" size="sm" href={`/sach/${params.id}/ma-vach`}>
+                {vi.copy.printBarcodes}
+              </ButtonLink>
+              <ButtonLink icon={Printer} variant="secondary" size="sm" href="/sach/xuat-nhan-gay">
+                {vi.copy.printSpineLabels}
+              </ButtonLink>
+            </div>
           )}
         </div>
 

@@ -1,5 +1,12 @@
 import type { ApiClient } from "../api-client";
-import type { Copy, CopyLookup, CreateCopiesInput, ExportBarcodesInput, UpdateCopyInput } from "../schemas/copy.schema";
+import type {
+  Copy,
+  CopyLookup,
+  CreateCopiesInput,
+  ExportBarcodesInput,
+  ExportSpineLabelsInput,
+  UpdateCopyInput,
+} from "../schemas/copy.schema";
 
 export function createCopiesApi(client: ApiClient) {
   return {
@@ -11,5 +18,7 @@ export function createCopiesApi(client: ApiClient) {
     getByBarcode: (barcode: string) =>
       client.get<CopyLookup>(`/api/v1/copies/by-barcode/${encodeURIComponent(barcode)}`),
     exportBarcodes: (input: ExportBarcodesInput) => client.postBlob("/api/v1/copies/export-barcodes", input),
+    exportSpineLabels: (input: ExportSpineLabelsInput) =>
+      client.postBlob("/api/v1/copies/export-spine-labels", input),
   };
 }

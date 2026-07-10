@@ -3,6 +3,7 @@ import type { Copy, CopyLookup, CreateCopiesInput, UpdateCopyInput } from "@thuv
 import { generateBarcode } from "../../lib/barcode";
 import { getBarcodePrefix } from "../settings/service";
 import { generateBarcodeDocxBuffer } from "./barcode-docx";
+import { generateSpineLabelDocxBuffer } from "./spine-label-docx";
 
 function toCopy(row: {
   id: string;
@@ -12,6 +13,7 @@ function toCopy(row: {
   location: string | null;
   notes: string | null;
   barcodePrintedAt: Date | null;
+  spineLabelPrintedAt: Date | null;
 }): Copy {
   return {
     id: row.id,
@@ -21,6 +23,7 @@ function toCopy(row: {
     location: row.location,
     notes: row.notes,
     barcodePrintedAt: row.barcodePrintedAt?.toISOString() ?? null,
+    spineLabelPrintedAt: row.spineLabelPrintedAt?.toISOString() ?? null,
   };
 }
 
@@ -116,6 +119,53 @@ export async function exportBarcodesBulkForBooks(bookIds: string[], onlyUnprinte
   await prisma.bookCopy.updateMany({
     where: { id: { in: rows.map((r) => r.id) } },
     data: { barcodePrintedAt: new Date() },
+  });
+  return buffer;
+}
+
+/** Xuất file .docx in nhãn gáy cho đúng các bản sao được chọn (giữ nguyên thứ tự truyền vào), đánh dấu đã in. */
+export async function exportSpineLabelsForCopies(copyIds: string[]): Promise<Buffer | null> {
+  const rows = await prisma.bookCopy.findMany({
+    where: { id: { in: copyIds } },
+    include: { book: true },
+  });
+  if (rows.length === 0) return null;
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const ordered = copyIds.map((id) => byId.get(id)).filter((r): r is (typeof rows)[number] => Boolean(r));
+
+  const buffer = await generateSpineLabelDocxBuffer(
+    ordered.map((r) => ({
+      barcode: r.barcode,
+      classificationNumber: r.book.classificationNumber,
+      authorMark: r.book.authorMark,
+    })),
+  );
+  await prisma.bookCopy.updateMany({
+    where: { id: { in: ordered.map((r) => r.id) } },
+    data: { spineLabelPrintedAt: new Date() },
+  });
+  return buffer;
+}
+
+/** Xuất file .docx in nhãn gáy cho toàn bộ bản sao thuộc các sách được chọn, tùy chọn chỉ lấy bản sao chưa in. */
+export async function exportSpineLabelsBulkForBooks(bookIds: string[], onlyUnprinted: boolean): Promise<Buffer | null> {
+  const rows = await prisma.bookCopy.findMany({
+    where: { bookId: { in: bookIds }, ...(onlyUnprinted ? { spineLabelPrintedAt: null } : {}) },
+    include: { book: true },
+    orderBy: [{ bookId: "asc" }, { barcode: "asc" }],
+  });
+  if (rows.length === 0) return null;
+
+  const buffer = await generateSpineLabelDocxBuffer(
+    rows.map((r) => ({
+      barcode: r.barcode,
+      classificationNumber: r.book.classificationNumber,
+      authorMark: r.book.authorMark,
+    })),
+  );
+  await prisma.bookCopy.updateMany({
+    where: { id: { in: rows.map((r) => r.id) } },
+    data: { spineLabelPrintedAt: new Date() },
   });
   return buffer;
 }
