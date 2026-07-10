@@ -1,6 +1,6 @@
 import type { FastifyInstance } from "fastify";
-import { DESTRUCTIVE_ROLES, STAFF_ROLES, updateCopyInputSchema } from "@thuvien/shared";
-import { deleteCopy, getCopyByBarcode, updateCopy } from "./service";
+import { DESTRUCTIVE_ROLES, exportBarcodesInputSchema, STAFF_ROLES, updateCopyInputSchema } from "@thuvien/shared";
+import { deleteCopy, exportBarcodesForCopies, getCopyByBarcode, updateCopy } from "./service";
 
 export async function copiesRoutes(app: FastifyInstance) {
   app.get(
@@ -43,6 +43,22 @@ export async function copiesRoutes(app: FastifyInstance) {
         return reply.code(409).send({ message: "Không thể xóa bản sao đang được mượn" });
       }
       return reply.code(204).send();
+    },
+  );
+
+  app.post(
+    "/export-barcodes",
+    { preHandler: [app.authenticate, app.requireRole(...STAFF_ROLES)] },
+    async (request, reply) => {
+      const body = exportBarcodesInputSchema.parse(request.body);
+      const buffer = await exportBarcodesForCopies(body.copyIds);
+      if (!buffer) {
+        return reply.code(404).send({ message: "Không tìm thấy bản sao nào phù hợp" });
+      }
+      reply.header("Content-Disposition", 'attachment; filename="nhan-ma-vach.docx"');
+      return reply
+        .type("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+        .send(buffer);
     },
   );
 }

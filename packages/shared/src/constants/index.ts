@@ -33,3 +33,20 @@ export const REFRESH_TOKEN_TTL_DAYS = 30;
 
 /** Cụm từ bắt buộc phải gõ đúng để xác nhận khôi phục dữ liệu (thao tác không thể hoàn tác). */
 export const RESTORE_CONFIRM_PHRASE = "XÁC NHẬN";
+
+/**
+ * Khổ giấy in nhãn mã vạch — đo thủ công từ tờ giấy Tomy 107 dọc thật (163×203mm, 3 cột × 10 hàng = 30 tem/tờ).
+ * Nguồn sự thật duy nhất cho layout tem — dùng ở apps/api khi sinh file .docx, đổi ở đây nếu đổi loại giấy.
+ */
+export const BARCODE_LABEL_SHEET = {
+  sheetWidthMm: 163,
+  sheetHeightMm: 203,
+  marginTopMm: 7,
+  marginLeftMm: 3,
+  labelWidthMm: 50,
+  labelHeightMm: 17,
+  colGapMm: 3,
+  rowGapMm: 2,
+  cols: 3,
+  rows: 10,
+} as const;

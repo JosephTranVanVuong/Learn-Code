@@ -1,3 +1,4 @@
+import * as bwipjs from "bwip-js";
 import {
   AlignmentType,
   BorderStyle,
@@ -16,27 +17,28 @@ import {
   WidthType,
   convertMillimetersToTwip,
 } from "docx";
-import JsBarcode from "jsbarcode";
+import { BARCODE_LABEL_SHEET } from "@thuvien/shared";
 
-// Khổ giấy Tomy 107 dọc — đo thủ công từ tờ giấy thật, xem HANDOFF.md để biết bối cảnh.
-const SHEET_WIDTH_MM = 163;
-const SHEET_HEIGHT_MM = 203;
-const MARGIN_TOP_MM = 7;
-const MARGIN_LEFT_MM = 3;
-const LABEL_WIDTH_MM = 50;
-const LABEL_HEIGHT_MM = 17;
-const COL_GAP_MM = 3;
-const ROW_GAP_MM = 2;
-const COLS = 3;
-const ROWS = 10;
+const {
+  sheetWidthMm: SHEET_WIDTH_MM,
+  sheetHeightMm: SHEET_HEIGHT_MM,
+  marginTopMm: MARGIN_TOP_MM,
+  marginLeftMm: MARGIN_LEFT_MM,
+  labelWidthMm: LABEL_WIDTH_MM,
+  labelHeightMm: LABEL_HEIGHT_MM,
+  colGapMm: COL_GAP_MM,
+  rowGapMm: ROW_GAP_MM,
+  cols: COLS,
+  rows: ROWS,
+} = BARCODE_LABEL_SHEET;
+
 const PER_PAGE = COLS * ROWS;
 const MARGIN_RIGHT_MM = SHEET_WIDTH_MM - (MARGIN_LEFT_MM + COLS * LABEL_WIDTH_MM + (COLS - 1) * COL_GAP_MM);
 const MARGIN_BOTTOM_MM = SHEET_HEIGHT_MM - (MARGIN_TOP_MM + ROWS * LABEL_HEIGHT_MM + (ROWS - 1) * ROW_GAP_MM);
 const BARCODE_IMAGE_WIDTH_MM = 46;
 const BARCODE_IMAGE_HEIGHT_MM = 8;
 const LABEL_FONT_SIZE = 16; // half-points = 8pt
-// Buộc chiều cao dòng đúng bằng cỡ chữ (thay vì giãn dòng mặc định của Word), tránh chữ tràn ra mép tem.
-const TEXT_LINE_HEIGHT_TWIPS = 190; // ~9.5pt cho chữ cỡ 8pt
+const TEXT_LINE_HEIGHT_TWIPS = 190; // ~9.5pt cho chữ cỡ 8pt — tránh giãn dòng mặc định của Word làm tràn mép
 const TEXT_LINE_SPACING = { before: 0, after: 0, line: TEXT_LINE_HEIGHT_TWIPS, lineRule: LineRuleType.EXACT };
 
 const NO_BORDER = { style: BorderStyle.NONE, size: 0 };
@@ -56,31 +58,25 @@ function mmToPx(mm: number): number {
   return Math.round((mm / 25.4) * 96);
 }
 
-function dataUrlToUint8Array(dataUrl: string): Uint8Array {
-  const base64 = dataUrl.split(",")[1] ?? "";
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
+/** Đọc width/height (px) từ IHDR chunk của PNG — theo đúng cấu trúc chuẩn PNG (offset cố định). */
+function readPngDimensions(png: Buffer): { width: number; height: number } {
+  return { width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
 }
 
-function renderBarcodeImage(value: string): { data: Uint8Array; width: number; height: number } {
-  const canvas = document.createElement("canvas");
-  JsBarcode(canvas, value, {
-    format: "CODE128",
-    displayValue: false,
-    margin: 0,
-    width: 2,
-    height: 60,
+async function renderBarcodeImage(value: string): Promise<{ data: Buffer; width: number; height: number }> {
+  const png = await bwipjs.toBuffer({
+    bcid: "code128",
+    text: value,
+    height: BARCODE_IMAGE_HEIGHT_MM,
+    includetext: false,
+    scale: 3,
   });
-  const targetWidthPx = mmToPx(BARCODE_IMAGE_WIDTH_MM);
-  const targetHeightPx = mmToPx(BARCODE_IMAGE_HEIGHT_MM);
-  const scale = Math.min(targetWidthPx / canvas.width, targetHeightPx / canvas.height);
-  return {
-    data: dataUrlToUint8Array(canvas.toDataURL("image/png")),
-    width: Math.round(canvas.width * scale),
-    height: Math.round(canvas.height * scale),
-  };
+  const { width: pxW, height: pxH } = readPngDimensions(png);
+  const naturalWidthMm = (BARCODE_IMAGE_HEIGHT_MM * pxW) / pxH;
+  const fitScale = Math.min(1, BARCODE_IMAGE_WIDTH_MM / naturalWidthMm);
+  const widthMm = naturalWidthMm * fitScale;
+  const heightMm = BARCODE_IMAGE_HEIGHT_MM * fitScale;
+  return { data: png, width: mmToPx(widthMm), height: mmToPx(heightMm) };
 }
 
 function buildEmptyCell(widthMm: number, columnSpan?: number): TableCell {
@@ -93,12 +89,12 @@ function buildEmptyCell(widthMm: number, columnSpan?: number): TableCell {
   });
 }
 
-function buildLabelCell(item: BarcodeLabelItem | null): TableCell {
+async function buildLabelCell(item: BarcodeLabelItem | null): Promise<TableCell> {
   if (!item) {
     return buildEmptyCell(LABEL_WIDTH_MM);
   }
 
-  const image = renderBarcodeImage(item.barcode);
+  const image = await renderBarcodeImage(item.barcode);
 
   return new TableCell({
     width: { size: mmToTwip(LABEL_WIDTH_MM), type: WidthType.DXA },
@@ -131,7 +127,7 @@ function buildLabelCell(item: BarcodeLabelItem | null): TableCell {
   });
 }
 
-function buildPageTable(items: (BarcodeLabelItem | null)[]): Table {
+async function buildPageTable(items: (BarcodeLabelItem | null)[]): Promise<Table> {
   const totalWidthMm = COLS * LABEL_WIDTH_MM + (COLS - 1) * COL_GAP_MM;
   const columnWidths: number[] = [];
   for (let c = 0; c < COLS; c++) {
@@ -143,7 +139,7 @@ function buildPageTable(items: (BarcodeLabelItem | null)[]): Table {
   for (let r = 0; r < ROWS; r++) {
     const cells: TableCell[] = [];
     for (let c = 0; c < COLS; c++) {
-      cells.push(buildLabelCell(items[r * COLS + c] ?? null));
+      cells.push(await buildLabelCell(items[r * COLS + c] ?? null));
       if (c < COLS - 1) cells.push(buildEmptyCell(COL_GAP_MM));
     }
     rows.push(
@@ -168,33 +164,35 @@ function buildPageTable(items: (BarcodeLabelItem | null)[]): Table {
   });
 }
 
-/** Sinh file .docx in nhãn mã vạch khớp khổ giấy Tomy 107 (163x203mm, 3 cột x 10 hàng = 30 tem/tờ). */
-export async function generateBarcodeDocxBlob(items: BarcodeLabelItem[]): Promise<Blob> {
+/** Sinh file .docx in nhãn mã vạch khớp khổ giấy Tomy 107 (xem BARCODE_LABEL_SHEET trong packages/shared). */
+export async function generateBarcodeDocxBuffer(items: BarcodeLabelItem[]): Promise<Buffer> {
   const chunks: BarcodeLabelItem[][] = [];
   for (let i = 0; i < items.length; i += PER_PAGE) {
     chunks.push(items.slice(i, i + PER_PAGE));
   }
   if (chunks.length === 0) chunks.push([]);
 
-  const sections = chunks.map((chunk) => {
-    const padded: (BarcodeLabelItem | null)[] = [...chunk];
-    while (padded.length < PER_PAGE) padded.push(null);
-    return {
-      properties: {
-        page: {
-          size: { width: mmToTwip(SHEET_WIDTH_MM), height: mmToTwip(SHEET_HEIGHT_MM) },
-          margin: {
-            top: mmToTwip(MARGIN_TOP_MM),
-            left: mmToTwip(MARGIN_LEFT_MM),
-            right: mmToTwip(MARGIN_RIGHT_MM),
-            bottom: mmToTwip(MARGIN_BOTTOM_MM),
+  const sections = await Promise.all(
+    chunks.map(async (chunk) => {
+      const padded: (BarcodeLabelItem | null)[] = [...chunk];
+      while (padded.length < PER_PAGE) padded.push(null);
+      return {
+        properties: {
+          page: {
+            size: { width: mmToTwip(SHEET_WIDTH_MM), height: mmToTwip(SHEET_HEIGHT_MM) },
+            margin: {
+              top: mmToTwip(MARGIN_TOP_MM),
+              left: mmToTwip(MARGIN_LEFT_MM),
+              right: mmToTwip(MARGIN_RIGHT_MM),
+              bottom: mmToTwip(MARGIN_BOTTOM_MM),
+            },
           },
         },
-      },
-      children: [buildPageTable(padded)],
-    };
-  });
+        children: [await buildPageTable(padded)],
+      };
+    }),
+  );
 
   const doc = new Document({ sections });
-  return Packer.toBlob(doc);
+  return Packer.toBuffer(doc);
 }

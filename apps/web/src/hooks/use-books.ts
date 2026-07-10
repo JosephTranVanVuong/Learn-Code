@@ -19,6 +19,13 @@ export function useBook(id: string | undefined) {
   });
 }
 
+export function useBarcodeExportSummary(query: { search?: string; categoryId?: string } = {}) {
+  return useQuery({
+    queryKey: ["books", "barcode-export-summary", query],
+    queryFn: () => booksApi.barcodeExportSummary(query),
+  });
+}
+
 export function useCreateBook() {
   const qc = useQueryClient();
   return useMutation({

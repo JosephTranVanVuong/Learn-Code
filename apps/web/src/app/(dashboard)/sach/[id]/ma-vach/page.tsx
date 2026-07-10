@@ -4,15 +4,14 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CheckSquare, FileDown, Square } from "lucide-react";
-import { vi } from "@thuvien/shared";
+import { ApiError, vi } from "@thuvien/shared";
 import { useBook } from "@/hooks/use-books";
-import { BarcodeLabel } from "@/components/barcode-label";
+import { copiesApi } from "@/lib/resources";
 import { Button } from "@/components/ui/button";
-import { generateBarcodeDocxBlob } from "@/lib/barcode-docx";
 
 export default function MaVachSachPage() {
   const params = useParams<{ id: string }>();
-  const { data: book, isLoading } = useBook(params.id);
+  const { data: book, isLoading, refetch } = useBook(params.id);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -45,9 +44,7 @@ export default function MaVachSachPage() {
     setExportError(null);
     setExporting(true);
     try {
-      const blob = await generateBarcodeDocxBlob(
-        selectedCopies.map((c) => ({ barcode: c.barcode, location: c.location })),
-      );
+      const blob = await copiesApi.exportBarcodes({ copyIds: selectedCopies.map((c) => c.id) });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -56,8 +53,10 @@ export default function MaVachSachPage() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-    } catch {
-      setExportError(vi.common.error);
+      await refetch();
+    } catch (err) {
+      const body = err instanceof ApiError ? (err.body as { message?: string } | null) : null;
+      setExportError(body?.message ?? vi.common.error);
     } finally {
       setExporting(false);
     }
@@ -65,7 +64,7 @@ export default function MaVachSachPage() {
 
   return (
     <div>
-      <div className="no-print mb-6">
+      <div className="mb-6">
         <Link href={`/sach/${params.id}`} className="flex w-fit items-center gap-1 text-sm text-slate-500 hover:underline">
           <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.75} />
           {vi.common.back}
@@ -110,6 +109,7 @@ export default function MaVachSachPage() {
                     <th className="px-4 py-2">{vi.copy.barcode}</th>
                     <th className="px-4 py-2">{vi.copy.status}</th>
                     <th className="px-4 py-2">{vi.copy.location}</th>
+                    <th className="px-4 py-2">{vi.copy.barcodePrintStatus}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -125,6 +125,17 @@ export default function MaVachSachPage() {
                       <td className="px-4 py-2 font-mono text-xs text-slate-600">{copy.barcode}</td>
                       <td className="px-4 py-2 text-slate-600">{vi.copyStatus[copy.status]}</td>
                       <td className="px-4 py-2 text-slate-600">{copy.location ?? "—"}</td>
+                      <td className="px-4 py-2">
+                        {copy.barcodePrintedAt ? (
+                          <span className="rounded-full bg-emerald-50 px-2 py-1 text-xs text-emerald-700">
+                            {vi.copy.barcodePrinted} · {new Date(copy.barcodePrintedAt).toLocaleDateString("vi-VN")}
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-500">
+                            {vi.copy.barcodeNotPrinted}
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -132,12 +143,6 @@ export default function MaVachSachPage() {
             </div>
           </>
         )}
-      </div>
-
-      <div className="flex flex-wrap gap-[1mm]">
-        {selectedCopies.map((copy) => (
-          <BarcodeLabel key={copy.id} barcode={copy.barcode} location={copy.location} />
-        ))}
       </div>
     </div>
   );

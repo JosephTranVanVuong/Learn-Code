@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Download, Plus, Upload } from "lucide-react";
+import { Barcode, Download, Plus, Upload } from "lucide-react";
 import { ApiError, STAFF_ROLES, vi } from "@thuvien/shared";
 import { useAuth } from "@/lib/auth-context";
 import { resolveAssetUrl } from "@/lib/asset-url";
@@ -62,6 +62,9 @@ export default function SachPage() {
             </Button>
             <ButtonLink icon={Upload} variant="secondary" href="/sach/nhap-excel">
               {vi.book.importExcel}
+            </ButtonLink>
+            <ButtonLink icon={Barcode} variant="secondary" href="/sach/xuat-ma-vach">
+              {vi.copy.bulkExportBarcodes}
             </ButtonLink>
             <ButtonLink icon={Plus} href="/sach/moi">
               {vi.book.addNew}

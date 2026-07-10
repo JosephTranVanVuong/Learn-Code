@@ -157,6 +157,10 @@ export const vi = {
     selectAll: "Chọn tất cả",
     selectNone: "Bỏ chọn tất cả",
     noCopiesToPrint: "Sách này chưa có bản sao nào",
+    barcodePrintStatus: "Tình trạng in nhãn",
+    barcodePrinted: "Đã in",
+    barcodeNotPrinted: "Chưa in",
+    bulkExportBarcodes: "Xuất mã vạch hàng loạt",
   },
   publicCatalog: {
     title: "Tra cứu sách",

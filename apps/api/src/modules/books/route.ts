@@ -4,12 +4,21 @@ import {
   createBookInputSchema,
   createCopiesInputSchema,
   DESTRUCTIVE_ROLES,
+  exportBarcodesBulkInputSchema,
   STAFF_ROLES,
   updateBookCopiesLocationInputSchema,
   updateBookInputSchema,
 } from "@thuvien/shared";
-import { createBook, deleteBook, getBook, listBooks, updateBook, updateBookCover } from "./service";
-import { addCopies, listCopiesForBook, updateAllCopiesLocationForBook } from "../copies/service";
+import {
+  createBook,
+  deleteBook,
+  getBarcodeExportSummary,
+  getBook,
+  listBooks,
+  updateBook,
+  updateBookCover,
+} from "./service";
+import { addCopies, exportBarcodesBulkForBooks, listCopiesForBook, updateAllCopiesLocationForBook } from "../copies/service";
 import { deleteCoverImageFile, isAllowedImageMime, saveCoverImage } from "../../lib/uploads";
 import { generateImportTemplate, importBooksFromExcel } from "./import";
 import { exportBooksToExcel } from "./export";
@@ -186,6 +195,32 @@ export async function booksRoutes(app: FastifyInstance) {
       reply.header("Content-Disposition", 'attachment; filename="danh-sach-sach.xlsx"');
       return reply
         .type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        .send(buffer);
+    },
+  );
+
+  app.get(
+    "/barcode-export-summary",
+    { preHandler: [app.authenticate, app.requireRole(...STAFF_ROLES)] },
+    async (request, reply) => {
+      const { search, categoryId } = request.query as { search?: string; categoryId?: string };
+      const summary = await getBarcodeExportSummary({ search, categoryId });
+      return reply.send(summary);
+    },
+  );
+
+  app.post(
+    "/export-barcodes-bulk",
+    { preHandler: [app.authenticate, app.requireRole(...STAFF_ROLES)] },
+    async (request, reply) => {
+      const body = exportBarcodesBulkInputSchema.parse(request.body);
+      const buffer = await exportBarcodesBulkForBooks(body.bookIds, body.onlyUnprinted);
+      if (!buffer) {
+        return reply.code(404).send({ message: "Không có bản sao nào phù hợp để xuất" });
+      }
+      reply.header("Content-Disposition", 'attachment; filename="nhan-ma-vach-hang-loat.docx"');
+      return reply
+        .type("application/vnd.openxmlformats-officedocument.wordprocessingml.document")
         .send(buffer);
     },
   );

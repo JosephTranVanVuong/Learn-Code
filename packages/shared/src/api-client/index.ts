@@ -133,6 +133,13 @@ export function createApiClient(options: ApiClientOptions) {
     upload: <T>(path: string, formData: FormData) => request<T>(path, { method: "POST", body: formData }),
     /** For binary downloads (e.g. generated Excel files). */
     getBlob: (path: string) => requestBlob(path, { method: "GET" }),
+    /** For binary downloads that require a request body (e.g. generated Word files from a selection). */
+    postBlob: (path: string, body?: unknown) =>
+      requestBlob(path, {
+        method: "POST",
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+        headers: { "Content-Type": "application/json" },
+      }),
   };
 }
 

@@ -119,13 +119,14 @@ model BookCopy {
   id        String     @id @default(cuid())
   bookId    String
   book      Book       @relation(fields: [bookId], references: [id])
-  barcode   String     @unique
-  status    String     @default("AVAILABLE")
-  location  String?
-  notes     String?
-  loans     Loan[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  barcode         String     @unique
+  status          String     @default("AVAILABLE")
+  location        String?
+  notes           String?
+  barcodePrintedAt DateTime?
+  loans           Loan[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   @@index([bookId])
 }

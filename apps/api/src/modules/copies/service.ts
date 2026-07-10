@@ -2,6 +2,7 @@ import { prisma } from "@thuvien/database";
 import type { Copy, CopyLookup, CreateCopiesInput, UpdateCopyInput } from "@thuvien/shared";
 import { generateBarcode } from "../../lib/barcode";
 import { getBarcodePrefix } from "../settings/service";
+import { generateBarcodeDocxBuffer } from "./barcode-docx";
 
 function toCopy(row: {
   id: string;
@@ -10,6 +11,7 @@ function toCopy(row: {
   status: string;
   location: string | null;
   notes: string | null;
+  barcodePrintedAt: Date | null;
 }): Copy {
   return {
     id: row.id,
@@ -18,6 +20,7 @@ function toCopy(row: {
     status: row.status as Copy["status"],
     location: row.location,
     notes: row.notes,
+    barcodePrintedAt: row.barcodePrintedAt?.toISOString() ?? null,
   };
 }
 
@@ -84,4 +87,35 @@ export async function deleteCopy(id: string): Promise<"ok" | "not_found" | "borr
   if (existing.status === "BORROWED") return "borrowed";
   await prisma.bookCopy.delete({ where: { id } });
   return "ok";
+}
+
+/** Xuất file .docx in nhãn cho đúng các bản sao được chọn (giữ nguyên thứ tự truyền vào), đánh dấu đã in. */
+export async function exportBarcodesForCopies(copyIds: string[]): Promise<Buffer | null> {
+  const rows = await prisma.bookCopy.findMany({ where: { id: { in: copyIds } } });
+  if (rows.length === 0) return null;
+  const byId = new Map(rows.map((r) => [r.id, r]));
+  const ordered = copyIds.map((id) => byId.get(id)).filter((r): r is (typeof rows)[number] => Boolean(r));
+
+  const buffer = await generateBarcodeDocxBuffer(ordered.map((r) => ({ barcode: r.barcode, location: r.location })));
+  await prisma.bookCopy.updateMany({
+    where: { id: { in: ordered.map((r) => r.id) } },
+    data: { barcodePrintedAt: new Date() },
+  });
+  return buffer;
+}
+
+/** Xuất file .docx in nhãn cho toàn bộ bản sao thuộc các sách được chọn, tùy chọn chỉ lấy bản sao chưa in. */
+export async function exportBarcodesBulkForBooks(bookIds: string[], onlyUnprinted: boolean): Promise<Buffer | null> {
+  const rows = await prisma.bookCopy.findMany({
+    where: { bookId: { in: bookIds }, ...(onlyUnprinted ? { barcodePrintedAt: null } : {}) },
+    orderBy: [{ bookId: "asc" }, { barcode: "asc" }],
+  });
+  if (rows.length === 0) return null;
+
+  const buffer = await generateBarcodeDocxBuffer(rows.map((r) => ({ barcode: r.barcode, location: r.location })));
+  await prisma.bookCopy.updateMany({
+    where: { id: { in: rows.map((r) => r.id) } },
+    data: { barcodePrintedAt: new Date() },
+  });
+  return buffer;
 }

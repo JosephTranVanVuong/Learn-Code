@@ -19,6 +19,8 @@
     "@thuvien/database": "workspace:*",
     "@thuvien/shared": "workspace:*",
     "argon2": "^0.41.1",
+    "bwip-js": "^4.11.2",
+    "docx": "^9.7.1",
     "dotenv": "^16.4.7",
     "fastify": "^5.2.0",
     "node-cron": "^4.5.0",

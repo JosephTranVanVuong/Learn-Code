@@ -50,6 +50,12 @@ importers:
       argon2:
         specifier: ^0.41.1
         version: 0.41.1
+      bwip-js:
+        specifier: ^4.11.2
+        version: 4.11.2
+      docx:
+        specifier: ^9.7.1
+        version: 9.7.1
       dotenv:
         specifier: ^16.4.7
         version: 16.6.1
@@ -175,9 +181,6 @@ importers:
       '@thuvien/shared':
         specifier: workspace:*
         version: link:../../packages/shared
-      docx:
-        specifier: ^9.7.1
-        version: 9.7.1
       jsbarcode:
         specifier: ^3.12.3
         version: 3.12.3
@@ -2673,6 +2676,10 @@ packages:
 
   buffer@5.7.1:
     resolution: {integrity: sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==}
+
+  bwip-js@4.11.2:
+    resolution: {integrity: sha512-gAjZvO0a8n6NmzbtqRY5gLrYO4vNWtbmUXfyWG/NMG8/qJE66ahbzA8J0MvBkWnYY69zx3qfJQq4q9qu3Bm3FQ==}
+    hasBin: true
 
   bytes@3.1.2:
     resolution: {integrity: sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==}
@@ -8548,6 +8555,8 @@ snapshots:
     dependencies:
       base64-js: 1.5.1
       ieee754: 1.2.1
+
+  bwip-js@4.11.2: {}
 
   bytes@3.1.2: {}
 

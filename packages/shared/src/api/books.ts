@@ -8,7 +8,11 @@ import type {
   CreateBookInput,
   UpdateBookInput,
 } from "../schemas/book.schema";
-import type { UpdateBookCopiesLocationInput } from "../schemas/copy.schema";
+import type {
+  BarcodeExportSummaryItem,
+  ExportBarcodesBulkInput,
+  UpdateBookCopiesLocationInput,
+} from "../schemas/copy.schema";
 
 export interface PaginatedBooks {
   items: BookWithAvailability[];
@@ -46,5 +50,9 @@ export function createBooksApi(client: ApiClient) {
     importFromExcel: (formData: FormData) =>
       client.upload<BookImportResult>("/api/v1/books/import", formData),
     exportAllBooks: () => client.getBlob("/api/v1/books/export"),
+    barcodeExportSummary: (query: { search?: string; categoryId?: string } = {}) =>
+      client.get<BarcodeExportSummaryItem[]>(`/api/v1/books/barcode-export-summary${toQueryString(query)}`),
+    exportBarcodesBulk: (input: ExportBarcodesBulkInput) =>
+      client.postBlob("/api/v1/books/export-barcodes-bulk", input),
   };
 }
