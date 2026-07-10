@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Barcode, Plus, Printer, Upload } from "lucide-react";
@@ -9,6 +9,9 @@ import { resolveAssetUrl } from "@/lib/asset-url";
 import { patronsApi } from "@/lib/resources";
 import { usePatrons } from "@/hooks/use-patrons";
 import { ButtonLink } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
+
+const PAGE_SIZE = 20;
 
 export default function BanDocPage() {
   const router = useRouter();
@@ -16,7 +19,13 @@ export default function BanDocPage() {
   const [scanCode, setScanCode] = useState("");
   const [scanError, setScanError] = useState<string | null>(null);
   const [scanBusy, setScanBusy] = useState(false);
-  const { data, isLoading } = usePatrons({ search: search || undefined, page: 1, pageSize: 50 });
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const { data, isLoading } = usePatrons({ search: search || undefined, page, pageSize: PAGE_SIZE });
 
   async function handleScanSearch(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key !== "Enter") return;
@@ -111,7 +120,7 @@ export default function BanDocPage() {
             )}
             {data?.items.map((patron, index) => (
               <tr key={patron.id} className="border-t border-slate-100 hover:bg-slate-50">
-                <td className="px-4 py-2 text-slate-400">{index + 1}</td>
+                <td className="px-4 py-2 text-slate-400">{(page - 1) * PAGE_SIZE + index + 1}</td>
                 <td className="px-4 py-2">
                   {patron.avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -150,6 +159,7 @@ export default function BanDocPage() {
           </tbody>
         </table>
       </div>
+      <Pagination page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onPageChange={setPage} />
     </div>
   );
 }

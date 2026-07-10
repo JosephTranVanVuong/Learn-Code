@@ -165,6 +165,9 @@ export async function generateSpineLabelDocxBuffer(items: SpineLabelItem[]): Pro
     };
   });
 
-  const doc = new Document({ sections });
+  const doc = new Document({
+    styles: { default: { document: { run: { font: "Roboto" } } } },
+    sections,
+  });
   return Packer.toBuffer(doc);
 }

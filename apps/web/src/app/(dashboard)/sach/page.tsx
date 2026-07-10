@@ -1,16 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Barcode, Download, Plus, Tag, Upload } from "lucide-react";
 import { ApiError, STAFF_ROLES, vi } from "@thuvien/shared";
 import { useAuth } from "@/lib/auth-context";
 import { resolveAssetUrl } from "@/lib/asset-url";
 import { booksApi } from "@/lib/resources";
-import { useBooks } from "@/hooks/use-books";
+import { useBooks, useInfiniteBooks } from "@/hooks/use-books";
 import { useCategories } from "@/hooks/use-categories";
 import { Button, ButtonLink } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
 import { BookGridItem } from "@/components/book-grid-item";
+
+const PAGE_SIZE = 20;
+const GRID_PAGE_SIZE = 20;
 
 export default function SachPage() {
   const { user } = useAuth();
@@ -18,17 +22,34 @@ export default function SachPage() {
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [availableOnly, setAvailableOnly] = useState(false);
+  const [page, setPage] = useState(1);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, categoryId, availableOnly]);
+
   const { data: categories } = useCategories();
-  const { data, isLoading } = useBooks({
+
+  const filters = {
     search: search || undefined,
     categoryId: categoryId || undefined,
     availableOnly: availableOnly || undefined,
-    page: 1,
-    pageSize: 50,
-  });
+  };
+
+  const { data, isLoading } = useBooks({ ...filters, page, pageSize: PAGE_SIZE }, { enabled: isStaff });
+
+  const {
+    data: gridPages,
+    isLoading: isGridLoading,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteBooks(filters, GRID_PAGE_SIZE, { enabled: !isStaff });
+
+  const gridItems = gridPages?.pages.flatMap((p) => p.items) ?? [];
+  const gridTotal = gridPages?.pages[0]?.total ?? 0;
 
   async function handleExport() {
     setExportError(null);
@@ -110,81 +131,91 @@ export default function SachPage() {
       </div>
 
       {isStaff ? (
-        <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white">
-          <table className="w-full text-sm">
-            <thead className="border-b-2 border-[#c9a24b] bg-[#f6efdd] text-left text-xs font-semibold uppercase tracking-wide text-[#0f1c3a]">
-              <tr>
-                <th className="px-4 py-2">{vi.common.stt}</th>
-                <th className="px-4 py-2"></th>
-                <th className="px-4 py-2">{vi.book.title}</th>
-                <th className="px-4 py-2">{vi.book.author}</th>
-                <th className="px-4 py-2">{vi.category.title}</th>
-                <th className="px-4 py-2">{vi.book.availability}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading && (
+        <>
+          <div className="mt-6 overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <table className="w-full text-sm">
+              <thead className="border-b-2 border-[#c9a24b] bg-[#f6efdd] text-left text-xs font-semibold uppercase tracking-wide text-[#0f1c3a]">
                 <tr>
-                  <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
-                    {vi.common.loading}
-                  </td>
+                  <th className="px-4 py-2">{vi.common.stt}</th>
+                  <th className="px-4 py-2"></th>
+                  <th className="px-4 py-2">{vi.book.title}</th>
+                  <th className="px-4 py-2">{vi.book.author}</th>
+                  <th className="px-4 py-2">{vi.category.title}</th>
+                  <th className="px-4 py-2">{vi.book.availability}</th>
                 </tr>
-              )}
-              {!isLoading && data?.items.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
-                    {vi.book.noResults}
-                  </td>
-                </tr>
-              )}
-              {data?.items.map((book, index) => (
-                <tr key={book.id} className="border-t border-slate-100 hover:bg-slate-50">
-                  <td className="px-4 py-2 text-slate-400">{index + 1}</td>
-                  <td className="px-4 py-2">
-                    {book.coverImageUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={resolveAssetUrl(book.coverImageUrl) ?? undefined}
-                        alt={book.title}
-                        className="h-14 w-10 rounded object-cover"
-                      />
-                    ) : (
-                      <div className="h-14 w-10 rounded bg-slate-100" />
-                    )}
-                  </td>
-                  <td className="px-4 py-2">
-                    <Link href={`/sach/${book.id}`} className="font-medium text-slate-800 hover:underline">
-                      {book.title}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-2 text-slate-600">{book.author.name}</td>
-                  <td className="px-4 py-2 text-slate-600">{book.category.name}</td>
-                  <td className="px-4 py-2 text-slate-600">
-                    {book.availableCopies}/{book.totalCopies} {vi.book.availability}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {isLoading && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
+                      {vi.common.loading}
+                    </td>
+                  </tr>
+                )}
+                {!isLoading && data?.items.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-4 text-center text-slate-400">
+                      {vi.book.noResults}
+                    </td>
+                  </tr>
+                )}
+                {data?.items.map((book, index) => (
+                  <tr key={book.id} className="border-t border-slate-100 hover:bg-slate-50">
+                    <td className="px-4 py-2 text-slate-400">{(page - 1) * PAGE_SIZE + index + 1}</td>
+                    <td className="px-4 py-2">
+                      {book.coverImageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={resolveAssetUrl(book.coverImageUrl) ?? undefined}
+                          alt={book.title}
+                          className="h-14 w-10 rounded object-cover"
+                        />
+                      ) : (
+                        <div className="h-14 w-10 rounded bg-slate-100" />
+                      )}
+                    </td>
+                    <td className="px-4 py-2">
+                      <Link href={`/sach/${book.id}`} className="font-medium text-slate-800 hover:underline">
+                        {book.title}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-2 text-slate-600">{book.author.name}</td>
+                    <td className="px-4 py-2 text-slate-600">{book.category.name}</td>
+                    <td className="px-4 py-2 text-slate-600">
+                      {book.availableCopies}/{book.totalCopies} {vi.book.availability}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onPageChange={setPage} />
+        </>
       ) : (
         <>
-          {!isLoading && data && (
+          {!isGridLoading && (
             <p className="mt-4 text-xs text-slate-400">
-              {data.total} {vi.book.resultsFound}
+              {gridItems.length}/{gridTotal} {vi.book.resultsFound}
             </p>
           )}
           <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {isLoading && (
+            {isGridLoading && (
               <p className="col-span-full py-10 text-center text-sm text-slate-400">{vi.common.loading}</p>
             )}
-            {!isLoading && data?.items.length === 0 && (
+            {!isGridLoading && gridItems.length === 0 && (
               <p className="col-span-full py-10 text-center text-sm text-slate-400">{vi.book.noResults}</p>
             )}
-            {data?.items.map((book) => (
+            {gridItems.map((book) => (
               <BookGridItem key={book.id} book={book} href={`/sach/${book.id}`} />
             ))}
           </div>
+          {hasNextPage && (
+            <div className="mt-8 flex justify-center">
+              <Button variant="secondary" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+                {isFetchingNextPage ? vi.common.loading : vi.common.loadMore}
+              </Button>
+            </div>
+          )}
         </>
       )}
     </div>

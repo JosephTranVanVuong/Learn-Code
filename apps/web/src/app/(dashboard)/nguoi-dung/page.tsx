@@ -1,15 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { vi } from "@thuvien/shared";
 import { useUsers } from "@/hooks/use-users";
 import { ButtonLink } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
+
+const PAGE_SIZE = 20;
 
 export default function NguoiDungPage() {
   const [search, setSearch] = useState("");
-  const { data, isLoading } = useUsers({ search: search || undefined, page: 1, pageSize: 50 });
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const { data, isLoading } = useUsers({ search: search || undefined, page, pageSize: PAGE_SIZE });
 
   return (
     <div>
@@ -57,7 +66,7 @@ export default function NguoiDungPage() {
             )}
             {data?.items.map((u, index) => (
               <tr key={u.id} className="border-t border-slate-100 hover:bg-slate-50">
-                <td className="px-4 py-2 text-slate-400">{index + 1}</td>
+                <td className="px-4 py-2 text-slate-400">{(page - 1) * PAGE_SIZE + index + 1}</td>
                 <td className="px-4 py-2">
                   <Link href={`/nguoi-dung/${u.id}`} className="font-medium text-slate-800 hover:underline">
                     {u.fullName}
@@ -81,6 +90,7 @@ export default function NguoiDungPage() {
           </tbody>
         </table>
       </div>
+      <Pagination page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onPageChange={setPage} />
     </div>
   );
 }

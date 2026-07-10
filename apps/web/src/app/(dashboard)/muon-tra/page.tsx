@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BookUp,
   CalendarClock,
@@ -24,6 +24,9 @@ import { useBook, useBooks } from "@/hooks/use-books";
 import { useCreateLoansBatch, useLoans, useRenewLoan, useReturnByBarcode, useReturnLoan } from "@/hooks/use-loans";
 import { useFines } from "@/hooks/use-fines";
 import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
+
+const ACTIVE_LOANS_PAGE_SIZE = 20;
 
 function toDateInputValue(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -665,14 +668,19 @@ function ActiveLoansPanel({ defaultLoanPeriodDays }: { defaultLoanPeriodDays: nu
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [exportInfo, setExportInfo] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [activeLoanSearch]);
 
   const returnLoan = useReturnLoan();
   const renewLoan = useRenewLoan();
   const { data: activeLoans, isLoading: loadingActive } = useLoans({
     status: "ACTIVE",
     search: activeLoanSearch || undefined,
-    page: 1,
-    pageSize: 100,
+    page,
+    pageSize: ACTIVE_LOANS_PAGE_SIZE,
   });
 
   async function handleExport() {
@@ -781,7 +789,7 @@ function ActiveLoansPanel({ defaultLoanPeriodDays }: { defaultLoanPeriodDays: nu
             )}
             {activeLoans?.items.map((loan, index) => (
               <tr key={loan.id} className="border-t border-slate-100">
-                <td className="px-4 py-2 text-slate-400">{index + 1}</td>
+                <td className="px-4 py-2 text-slate-400">{(page - 1) * ACTIVE_LOANS_PAGE_SIZE + index + 1}</td>
                 <td className="px-4 py-2 text-slate-800">{loan.book.title}</td>
                 <td className="px-4 py-2 font-mono text-xs text-slate-500">{loan.copy.barcode}</td>
                 <td className="px-4 py-2 text-slate-600">{loan.patron.fullName}</td>
@@ -839,6 +847,12 @@ function ActiveLoansPanel({ defaultLoanPeriodDays }: { defaultLoanPeriodDays: nu
           </tbody>
         </table>
       </div>
+      <Pagination
+        page={page}
+        pageSize={ACTIVE_LOANS_PAGE_SIZE}
+        total={activeLoans?.total ?? 0}
+        onPageChange={setPage}
+      />
     </div>
   );
 }

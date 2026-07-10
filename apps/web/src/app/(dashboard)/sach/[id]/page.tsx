@@ -477,7 +477,7 @@ export default function ChiTietSachPage() {
               <ButtonLink icon={Printer} variant="secondary" size="sm" href={`/sach/${params.id}/ma-vach`}>
                 {vi.copy.printBarcodes}
               </ButtonLink>
-              <ButtonLink icon={Printer} variant="secondary" size="sm" href="/sach/xuat-nhan-gay">
+              <ButtonLink icon={Printer} variant="secondary" size="sm" href={`/sach/${params.id}/nhan-gay`}>
                 {vi.copy.printSpineLabels}
               </ButtonLink>
             </div>

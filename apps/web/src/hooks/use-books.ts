@@ -1,13 +1,32 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { BookQuery, CreateBookInput, UpdateBookCopiesLocationInput, UpdateBookInput } from "@thuvien/shared";
 import { booksApi } from "@/lib/resources";
 
-export function useBooks(query: Partial<BookQuery>) {
+export function useBooks(query: Partial<BookQuery>, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ["books", "list", query],
     queryFn: () => booksApi.list(query),
+    enabled: options?.enabled,
+  });
+}
+
+/** Dùng cho lưới duyệt sách kiểu "Xem thêm" (độc giả) — gộp nhiều trang liên tiếp thành 1 danh sách dài dần. */
+export function useInfiniteBooks(
+  query: Omit<Partial<BookQuery>, "page">,
+  pageSize: number,
+  options?: { enabled?: boolean },
+) {
+  return useInfiniteQuery({
+    queryKey: ["books", "list-infinite", query, pageSize],
+    queryFn: ({ pageParam }) => booksApi.list({ ...query, page: pageParam, pageSize }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, allPages) => {
+      const loaded = allPages.reduce((sum, p) => sum + p.items.length, 0);
+      return loaded < lastPage.total ? allPages.length + 1 : undefined;
+    },
+    enabled: options?.enabled,
   });
 }
 

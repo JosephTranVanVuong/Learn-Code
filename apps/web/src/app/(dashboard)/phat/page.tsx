@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Ban, CircleCheck } from "lucide-react";
 import { ApiError, vi, type FineStatus } from "@thuvien/shared";
 import { useFines, usePayFine, useWaiveFine } from "@/hooks/use-fines";
 import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/ui/pagination";
+
+const PAGE_SIZE = 20;
 
 const STATUS_FILTERS: { value: FineStatus; label: string }[] = [
   { value: "UNPAID", label: vi.fineStatus.UNPAID },
@@ -15,8 +18,13 @@ const STATUS_FILTERS: { value: FineStatus; label: string }[] = [
 export default function PhatPage() {
   const [status, setStatus] = useState<FineStatus>("UNPAID");
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useFines({ status, page: 1, pageSize: 100 });
+  useEffect(() => {
+    setPage(1);
+  }, [status]);
+
+  const { data, isLoading } = useFines({ status, page, pageSize: PAGE_SIZE });
   const payFine = usePayFine();
   const waiveFine = useWaiveFine();
 
@@ -98,7 +106,7 @@ export default function PhatPage() {
             )}
             {data?.items.map((fine, index) => (
               <tr key={fine.id} className="border-t border-slate-100">
-                <td className="px-4 py-2 text-slate-400">{index + 1}</td>
+                <td className="px-4 py-2 text-slate-400">{(page - 1) * PAGE_SIZE + index + 1}</td>
                 <td className="px-4 py-2 text-slate-800">{fine.patron.fullName}</td>
                 <td className="px-4 py-2 text-slate-600">
                   {fine.loan.book.title}{" "}
@@ -138,6 +146,7 @@ export default function PhatPage() {
           </tbody>
         </table>
       </div>
+      <Pagination page={page} pageSize={PAGE_SIZE} total={data?.total ?? 0} onPageChange={setPage} />
     </div>
   );
 }

@@ -75,6 +75,9 @@ export const vi = {
     error: "Đã xảy ra lỗi",
     confirm: "Xác nhận",
     back: "Quay lại",
+    showingResults: "Hiển thị",
+    ofTotal: "trong tổng số",
+    loadMore: "Xem thêm",
   },
   category: {
     title: "Thể loại",

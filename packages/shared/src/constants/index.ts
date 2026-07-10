@@ -52,18 +52,17 @@ export const BARCODE_LABEL_SHEET = {
 } as const;
 
 /**
- * Khổ giấy in nhãn gáy sách — cùng tờ giấy nền Tomy A5 105 (163×203mm) như trên, nhưng
- * xoay ngang 90° khi in (tem 37×25mm nằm ngang, dễ dán hơn) — xem SPINE_LABEL_SHEET.cols/rows
- * đổi vị trí so với BARCODE_LABEL_SHEET vì trục ngang/dọc của tờ giấy đã hoán đổi.
+ * Khổ giấy in nhãn gáy sách — đo thủ công từ tờ giấy Tomy A5 105 nằm ngang thật
+ * (210×166mm, 5 cột × 6 hàng = 30 tem/tờ, tem ngang 37×25mm).
  */
 export const SPINE_LABEL_SHEET = {
-  sheetWidthMm: 203,
-  sheetHeightMm: 163,
-  marginTopMm: 3,
-  marginLeftMm: 5,
+  sheetWidthMm: 210,
+  sheetHeightMm: 166,
+  marginTopMm: 4,
+  marginLeftMm: 6,
   labelWidthMm: 37,
   labelHeightMm: 25,
-  colGapMm: 2,
+  colGapMm: 3,
   rowGapMm: 2,
   cols: 5,
   rows: 6,
