@@ -153,7 +153,7 @@ export const vi = {
     quantity: "Số lượng",
     deleteConfirm: "Xóa bản sao này?",
     printBarcodes: "In mã vạch",
-    printSelectedBarcodes: "In mã vạch đã chọn",
+    printSelectedBarcodes: "Xuất file Word để in",
     selectAll: "Chọn tất cả",
     selectNone: "Bỏ chọn tất cả",
     noCopiesToPrint: "Sách này chưa có bản sao nào",

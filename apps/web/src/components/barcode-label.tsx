@@ -3,37 +3,30 @@
 import { useEffect, useRef } from "react";
 import JsBarcode from "jsbarcode";
 
-export function BarcodeLabel({
-  title,
-  barcode,
-  location,
-}: {
-  title: string;
-  barcode: string;
-  location?: string | null;
-}) {
+export function BarcodeLabel({ barcode, location }: { barcode: string; location?: string | null }) {
   const svgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
     if (svgRef.current) {
       JsBarcode(svgRef.current, barcode, {
         format: "CODE128",
-        width: 1.6,
-        height: 32,
-        displayValue: true,
-        fontSize: 11,
-        margin: 2,
+        width: 0.9,
+        height: 22,
+        displayValue: false,
+        margin: 0,
       });
     }
   }, [barcode]);
 
   return (
-    <div className="barcode-label flex h-[110px] w-[230px] flex-col items-center justify-between rounded-md border border-slate-300 bg-white p-2">
-      <p className="line-clamp-2 w-full text-center text-[11px] font-medium leading-tight text-slate-800">
-        {title}
+    <div className="barcode-label box-border flex h-[17mm] w-[50mm] flex-col items-center justify-between border border-slate-300 bg-white px-[1mm] py-[0.5mm]">
+      <p className="w-full text-center font-mono leading-none text-slate-800" style={{ fontSize: "8px" }}>
+        {barcode}
       </p>
       <svg ref={svgRef} />
-      {location && <p className="text-[9px] text-slate-400">{location}</p>}
+      <p className="w-full text-center leading-none text-slate-600" style={{ fontSize: "8px" }}>
+        {location || " "}
+      </p>
     </div>
   );
 }

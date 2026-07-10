@@ -3,16 +3,19 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CheckSquare, Printer, Square } from "lucide-react";
+import { ArrowLeft, CheckSquare, FileDown, Square } from "lucide-react";
 import { vi } from "@thuvien/shared";
 import { useBook } from "@/hooks/use-books";
 import { BarcodeLabel } from "@/components/barcode-label";
 import { Button } from "@/components/ui/button";
+import { generateBarcodeDocxBlob } from "@/lib/barcode-docx";
 
 export default function MaVachSachPage() {
   const params = useParams<{ id: string }>();
   const { data: book, isLoading } = useBook(params.id);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
     if (book) {
@@ -38,6 +41,28 @@ export default function MaVachSachPage() {
 
   const selectedCopies = book.copies.filter((c) => selected.has(c.id));
 
+  async function handleExportDocx() {
+    setExportError(null);
+    setExporting(true);
+    try {
+      const blob = await generateBarcodeDocxBlob(
+        selectedCopies.map((c) => ({ barcode: c.barcode, location: c.location })),
+      );
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "nhan-ma-vach.docx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setExportError(vi.common.error);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   return (
     <div>
       <div className="no-print mb-6">
@@ -49,10 +74,12 @@ export default function MaVachSachPage() {
           <h1 className="text-lg font-semibold text-slate-800">
             {vi.copy.printBarcodes} — {book.title}
           </h1>
-          <Button icon={Printer} onClick={() => window.print()} disabled={selectedCopies.length === 0}>
-            {vi.copy.printSelectedBarcodes}
+          <Button icon={FileDown} onClick={handleExportDocx} disabled={selectedCopies.length === 0 || exporting}>
+            {exporting ? vi.common.loading : vi.copy.printSelectedBarcodes}
           </Button>
         </div>
+
+        {exportError && <p className="mt-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{exportError}</p>}
 
         {book.copies.length === 0 ? (
           <p className="mt-4 text-sm text-slate-400">{vi.copy.noCopiesToPrint}</p>
@@ -107,9 +134,9 @@ export default function MaVachSachPage() {
         )}
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-[1mm]">
         {selectedCopies.map((copy) => (
-          <BarcodeLabel key={copy.id} title={book.title} barcode={copy.barcode} location={copy.location} />
+          <BarcodeLabel key={copy.id} barcode={copy.barcode} location={copy.location} />
         ))}
       </div>
     </div>
