@@ -17,6 +17,7 @@ import {
   returnLoan,
   returnLoanByBarcode,
 } from "./service";
+import { exportActiveLoansToExcel } from "./export";
 
 const CREATE_LOAN_ERRORS = {
   copy_not_found: { status: 404, message: "Không tìm thấy bản sao" },
@@ -60,6 +61,19 @@ export async function loansRoutes(app: FastifyInstance) {
     { preHandler: [app.authenticate, app.requireRole(...STAFF_ROLES)] },
     async (_request, reply) => {
       return reply.send(await listOverdueLoans());
+    },
+  );
+
+  app.get(
+    "/export",
+    { preHandler: [app.authenticate, app.requireRole(...STAFF_ROLES)] },
+    async (request, reply) => {
+      const { search } = request.query as { search?: string };
+      const buffer = await exportActiveLoansToExcel(search);
+      reply.header("Content-Disposition", 'attachment; filename="danh-sach-dang-muon.xlsx"');
+      return reply
+        .type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        .send(buffer);
     },
   );
 

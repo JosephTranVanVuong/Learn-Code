@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { reportsApi } from "../lib/resources";
 
-export function useReportsOverview() {
-  return useQuery({ queryKey: ["reports", "overview"], queryFn: () => reportsApi.overview() });
+export function useReportsOverview(enabled = true) {
+  return useQuery({ queryKey: ["reports", "overview"], queryFn: () => reportsApi.overview(), enabled });
 }
 
 export function useMostBorrowed(limit = 10) {
@@ -12,10 +12,11 @@ export function useMostBorrowed(limit = 10) {
   });
 }
 
-export function useOverdueSummary() {
+export function useOverdueSummary(enabled = true) {
   return useQuery({
     queryKey: ["reports", "overdue-summary"],
     queryFn: () => reportsApi.overdueSummary(),
+    enabled,
   });
 }
 

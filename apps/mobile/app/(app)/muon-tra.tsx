@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Alert, Image, Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import DateTimePicker, { type DateTimePickerEvent } from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
 import { ApiError, vi, type Patron } from "@thuvien/shared";
-import { patronsApi, copiesApi } from "../../lib/resources";
+import { patronsApi, copiesApi, loansApi } from "../../lib/resources";
 import { resolveAssetUrl } from "../../lib/asset-url";
 import { colors } from "../../lib/theme";
 import { usePatronLoans, usePatrons } from "../../hooks/use-patrons";
@@ -681,12 +683,25 @@ function ReturnPanel() {
   );
 }
 
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error);
+    reader.onload = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1] ?? "");
+    };
+    reader.readAsDataURL(blob);
+  });
+}
+
 function ActiveLoansPanel({ defaultLoanPeriodDays }: { defaultLoanPeriodDays: number }) {
   const [activeLoanSearch, setActiveLoanSearch] = useState("");
   const [renewingLoanId, setRenewingLoanId] = useState<string | null>(null);
   const [renewDate, setRenewDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const returnLoan = useReturnLoan();
   const renewLoan = useRenewLoan();
@@ -696,6 +711,27 @@ function ActiveLoansPanel({ defaultLoanPeriodDays }: { defaultLoanPeriodDays: nu
     page: 1,
     pageSize: 100,
   });
+
+  async function handleExport() {
+    setError(null);
+    setExporting(true);
+    try {
+      const blob = await loansApi.exportActiveLoans(activeLoanSearch || undefined);
+      const base64 = await blobToBase64(blob);
+      const fileUri = `${FileSystem.cacheDirectory}danh-sach-dang-muon.xlsx`;
+      await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: "base64" });
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(fileUri, {
+          mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          dialogTitle: "Lưu danh sách đang mượn",
+        });
+      }
+    } catch (err) {
+      setError(extractMessage(err, vi.common.error));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   function handleReturn(id: string) {
     Alert.alert(vi.loan.confirmReturn, undefined, [
@@ -753,6 +789,16 @@ function ActiveLoansPanel({ defaultLoanPeriodDays }: { defaultLoanPeriodDays: nu
         placeholder={vi.loan.searchActivePlaceholder}
         style={inputStyle()}
       />
+      <Button
+        variant="secondary"
+        size="sm"
+        icon="download-outline"
+        onPress={handleExport}
+        disabled={exporting}
+        loading={exporting}
+      >
+        {vi.loan.exportExcel}
+      </Button>
       {isLoading && <Text style={{ color: colors.textMuted }}>{vi.common.loading}</Text>}
       {!isLoading && activeLoans?.items.length === 0 && (
         <Text style={{ color: colors.textMuted }}>{activeLoanSearch ? vi.loan.noSearchResults : vi.loan.noActiveLoans}</Text>

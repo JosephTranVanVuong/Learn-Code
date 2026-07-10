@@ -7,6 +7,7 @@ import {
   Check,
   CheckSquare,
   ClipboardList,
+  Download,
   Plus,
   ShoppingBag,
   Square,
@@ -15,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { ApiError, vi, type Patron } from "@thuvien/shared";
-import { patronsApi, copiesApi } from "@/lib/resources";
+import { patronsApi, copiesApi, loansApi } from "@/lib/resources";
 import { resolveAssetUrl } from "@/lib/asset-url";
 import { usePatronLoans, usePatrons } from "@/hooks/use-patrons";
 import { usePatronTypes } from "@/hooks/use-patron-types";
@@ -662,6 +663,8 @@ function ActiveLoansPanel({ defaultLoanPeriodDays }: { defaultLoanPeriodDays: nu
   const [renewingLoanId, setRenewingLoanId] = useState<string | null>(null);
   const [renewDate, setRenewDate] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportInfo, setExportInfo] = useState<string | null>(null);
 
   const returnLoan = useReturnLoan();
   const renewLoan = useRenewLoan();
@@ -671,6 +674,28 @@ function ActiveLoansPanel({ defaultLoanPeriodDays }: { defaultLoanPeriodDays: nu
     page: 1,
     pageSize: 100,
   });
+
+  async function handleExport() {
+    setError(null);
+    setExportInfo(null);
+    setExporting(true);
+    try {
+      const blob = await loansApi.exportActiveLoans(activeLoanSearch || undefined);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "danh-sach-dang-muon.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setExportInfo(vi.loan.exportSuccess);
+    } catch (err) {
+      setError(extractMessage(err, vi.common.error));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function handleReturn(id: string) {
     setError(null);
@@ -709,14 +734,22 @@ function ActiveLoansPanel({ defaultLoanPeriodDays }: { defaultLoanPeriodDays: nu
   return (
     <div className="mt-4">
       {error && <p className="mb-3 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+      {exportInfo && (
+        <p className="mb-3 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{exportInfo}</p>
+      )}
       <div className="flex items-center justify-between gap-4">
         <h2 className="text-base font-semibold text-slate-800">{vi.nav.loans}</h2>
-        <input
-          value={activeLoanSearch}
-          onChange={(e) => setActiveLoanSearch(e.target.value)}
-          placeholder={vi.loan.searchActivePlaceholder}
-          className="w-72 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-        />
+        <div className="flex items-center gap-3">
+          <input
+            value={activeLoanSearch}
+            onChange={(e) => setActiveLoanSearch(e.target.value)}
+            placeholder={vi.loan.searchActivePlaceholder}
+            className="w-72 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+          />
+          <Button icon={Download} variant="secondary" size="sm" onClick={handleExport} disabled={exporting}>
+            {exporting ? vi.common.loading : vi.loan.exportExcel}
+          </Button>
+        </div>
       </div>
       <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-white">
         <table className="w-full text-sm">

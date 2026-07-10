@@ -275,6 +275,9 @@ export const vi = {
     returnResultTitle: "Kết quả trả sách",
     returnNoFine: "Đã trả, không phát sinh phạt",
     noBooksToReturn: "Độc giả này hiện không có sách nào đang mượn",
+
+    exportExcel: "Xuất Excel",
+    exportSuccess: "Đã xuất file thành công",
   },
   fine: {
     title: "Phạt",

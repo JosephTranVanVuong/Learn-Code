@@ -41,5 +41,7 @@ export function createLoansApi(client: ApiClient) {
       client.post<LoanWithDetails>("/api/v1/loans/return-by-barcode", input),
     renew: (id: string, input: RenewLoanInput) =>
       client.post<LoanWithDetails>(`/api/v1/loans/${id}/renew`, input),
+    exportActiveLoans: (search?: string) =>
+      client.getBlob(`/api/v1/loans/export${toQueryString({ search })}`),
   };
 }

@@ -6,7 +6,7 @@
 apps/
   api/      Fastify 5 — API dùng chung cho web và mobile (http://localhost:4000)
   web/      Next.js App Router — quản trị + tra cứu công khai (http://localhost:3000)
-  mobile/   Expo Router / React Native — bản mobile đầy đủ chức năng tương đương web
+  mobile/   Expo Router (SDK 54) / React Native — bản mobile đầy đủ chức năng tương đương web, điều hướng dạng Tab bar
 packages/
   database/ Prisma schema (SQLite) + migrations + seed dữ liệu mẫu
   shared/   Zod schemas, api-client, hằng số, từ điển tiếng Việt (i18n), React Query hooks dùng chung
@@ -26,10 +26,10 @@ packages/
 | `authors` | Tác giả |
 | `books` | CRUD sách + tra cứu công khai (không auth), cover image upload |
 | `copies` | Bản sao sách (mã vạch, trạng thái, vị trí kệ) |
-| `loans` | Mượn/trả (kể cả tạo hàng loạt qua giỏ hàng `/batch`), gia hạn, quá hạn |
-| `fines` | Danh sách phạt, thu tiền, miễn phạt |
+| `loans` | Mượn/trả (kể cả tạo hàng loạt qua giỏ hàng `/batch`), gia hạn, quá hạn — `LoanWithDetails` luôn kèm `copy.barcode` |
+| `fines` | Danh sách phạt, thu tiền, miễn phạt — `FineWithDetails.loan` kèm `copy.barcode` để xác định đúng bản sao |
 | `reports` | Tổng quan, sách mượn nhiều nhất, thống kê thời gian, độc giả mượn nhiều nhất |
-| `notifications` | Gửi thông báo email (quá hạn...), cài đặt bật/tắt tự động |
+| `notifications` | Gửi thông báo email (quá hạn...), cài đặt bật/tắt tự động — danh sách nhắc hạn/quá hạn trả kèm `barcode` bản sao |
 | `settings` | Cài đặt thư viện (tên/logo/địa chỉ), mức phạt/ngày, tiền tố mã vạch, **cấu hình sao lưu tự động + lịch sử sao lưu (list/create/download/delete/restore)** |
 | `data-management` | Xóa hàng loạt dữ liệu theo loại — **mỗi loại yêu cầu gõ cụm từ xác nhận riêng + mật khẩu**, xem trước số lượng (`/counts`), nhật ký ai xóa gì lúc nào (`/logs`) |
 
@@ -41,12 +41,12 @@ packages/
 (auth)/dang-nhap                      Đăng nhập
 (public)/tra-cuu                      Tra cứu sách công khai (lưới bìa sách, không cần đăng nhập)
 (public)/tra-cuu/[id]                 Chi tiết sách công khai
-(dashboard)/tong-quan                 Tổng quan (dashboard theo role, đổi mật khẩu tự phục vụ cho độc giả)
-(dashboard)/sach                      Quản lý sách
+(dashboard)/tong-quan                 Tổng quan (dashboard theo role; độc giả có "membership card" navy + banner quá hạn + thẻ số liệu, đổi mật khẩu tự phục vụ qua Modal nút variant "gold")
+(dashboard)/sach                      Quản lý sách (nhân viên: bảng danh sách; độc giả: lưới bìa sách qua `BookGridItem`)
 (dashboard)/the-loai                  Quản lý thể loại
 (dashboard)/tac-gia                   Quản lý tác giả
 (dashboard)/ban-doc                   Quản lý độc giả (route giữ tên cũ "ban-doc", UI hiển thị "Độc giả")
-(dashboard)/ban-doc/[id]              Sửa thông tin độc giả (avatar, đổi mật khẩu qua Modal, xóa vĩnh viễn)
+(dashboard)/ban-doc/[id]              Sửa thông tin độc giả (avatar chữ nhật 2:3, đổi mật khẩu qua Modal, xóa vĩnh viễn)
 (dashboard)/ban-doc/nhap-excel        Import độc giả từ Excel
 (dashboard)/sach/moi                  Thêm sách — full trang, upload ảnh bìa ngay lúc tạo, quay về /sach sau khi lưu
 (dashboard)/sach/[id]                 Sửa thông tin sách — full trang 2 cột
@@ -61,7 +61,25 @@ packages/
 (dashboard)/cai-dat/xoa-du-lieu       Xóa dữ liệu — 4 thẻ xóa theo loại + "Xóa tất cả", mỗi thao tác yêu cầu gõ cụm từ riêng + mật khẩu, xem trước số lượng, nhật ký xóa dữ liệu bên dưới
 ```
 
-`apps/mobile/app/(app)/` mirror cấu trúc trên (React Native), `(auth)` và `(public)` tương ứng.
+## `apps/mobile/app/` — Expo Router (SDK 54), điều hướng dạng Tab bar
+
+```
+_layout.tsx                           Root layout, bọc SafeAreaProvider
+index.tsx, +not-found.tsx             Entry / màn hình không tìm thấy route
+(auth)/dang-nhap                      Đăng nhập
+(public)/tra-cuu/                     Tra cứu công khai — _layout.tsx (Stack) + index.tsx (lưới 2 cột) + [id].tsx (chi tiết)
+(app)/_layout.tsx                     Tabs: Tổng quan · Mượn-trả (header navy riêng) · Sách · Độc giả (ẩn cho độc giả) · Thêm (ẩn cho độc giả)
+(app)/them.tsx                        Tab "Thêm" — gộp Phạt/Báo cáo/Thể loại/Tác giả/Thông báo + Người dùng/Cài đặt (chỉ QUAN_TRI)
+(app)/tong-quan.tsx                   Tổng quan theo role (giống web)
+(app)/muon-tra.tsx                    Mượn/trả — Segmented 3 tab, PatronPicker dùng chung
+(app)/sach/                           _layout.tsx (Stack) + index.tsx (lưới cho độc giả / bảng cho nhân viên) + [id].tsx (chi tiết + form sửa, UI kit mới) + moi.tsx (thêm sách — CHƯA redesign) + nhap-excel.tsx
+(app)/ban-doc/                        _layout.tsx (Stack) + index.tsx + [id].tsx (sửa độc giả, full parity với web) + moi.tsx + nhap-excel.tsx
+(app)/nguoi-dung/                     _layout.tsx (Stack) + index.tsx + [id].tsx + moi.tsx — chỉ QUAN_TRI
+(app)/cai-dat/                        _layout.tsx (Stack) + index.tsx + các trang cài đặt con
+(app)/phat.tsx, bao-cao.tsx, the-loai.tsx, tac-gia.tsx, thong-bao.tsx   Màn hình đơn (truy cập qua tab "Thêm")
+```
+
+`apps/mobile/components/ui/` — Button/Card/Badge/Segmented (UI kit dùng chung, bắt buộc cho mọi màn hình redesign — xem [CLAUDE.md](CLAUDE.md)). `apps/mobile/lib/theme.ts` — bảng màu `colors`. `apps/mobile/components/book-grid-item.tsx` — ô lưới bìa sách (tương ứng `apps/web/src/components/book-grid-item.tsx` bên web).
 
 ## `packages/shared/src/`
 

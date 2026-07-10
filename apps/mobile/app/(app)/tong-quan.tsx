@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Image, Modal, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
+import { Image, Modal, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,6 +8,7 @@ import { useAuth } from "../../lib/auth-context";
 import { useMyLoans, usePatron } from "../../hooks/use-patrons";
 import { useMyFines } from "../../hooks/use-fines";
 import { usePatronTypes } from "../../hooks/use-patron-types";
+import { useOverdueSummary, useReportsOverview } from "../../hooks/use-reports";
 import { useChangePassword } from "../../hooks/use-change-password";
 import { resolveAssetUrl } from "../../lib/asset-url";
 import { colors } from "../../lib/theme";
@@ -46,6 +47,49 @@ function StatTile({
   );
 }
 
+function QuickActionTile({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      style={{
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 10,
+        backgroundColor: "#ffffff",
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: colors.border,
+        padding: 12,
+      }}
+    >
+      <View
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 8,
+          backgroundColor: colors.navy,
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <Ionicons name={icon} size={18} color={colors.gold} />
+      </View>
+      <Text style={{ fontSize: 13, fontWeight: "600", color: colors.textPrimary, flex: 1 }} numberOfLines={1}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
 export default function TongQuanScreen() {
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -56,6 +100,8 @@ export default function TongQuanScreen() {
   const { data: myFines, refetch: refetchFines, isRefetching: refetchingFines } = useMyFines();
   const { data: patron, refetch: refetchPatron } = usePatron(!isStaff ? user?.id : undefined);
   const { data: patronTypes } = usePatronTypes();
+  const { data: overview, refetch: refetchOverview } = useReportsOverview(isStaff);
+  const { data: overdue, refetch: refetchOverdue } = useOverdueSummary(isStaff);
   const changePassword = useChangePassword();
 
   const [showPasswordModal, setShowPasswordModal] = useState(false);
@@ -106,7 +152,11 @@ export default function TongQuanScreen() {
   }
 
   async function handleRefresh() {
-    await Promise.all([refetchLoans(), refetchFines(), refetchPatron()]);
+    if (isStaff) {
+      await Promise.all([refetchOverview(), refetchOverdue()]);
+    } else {
+      await Promise.all([refetchLoans(), refetchFines(), refetchPatron()]);
+    }
   }
 
   return (
@@ -166,6 +216,88 @@ export default function TongQuanScreen() {
       </View>
 
       <View style={{ padding: 16, gap: 12 }}>
+        {isStaff && (
+          <>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <StatTile icon="book-outline" label={vi.report.totalBooks} value={String(overview?.totalBooks ?? "—")} />
+              <StatTile
+                icon="layers-outline"
+                label={vi.report.totalCopies}
+                value={String(overview?.totalCopies ?? "—")}
+              />
+            </View>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <StatTile
+                icon="people-outline"
+                label={vi.report.totalPatrons}
+                value={String(overview?.totalPatrons ?? "—")}
+              />
+              <StatTile
+                icon="swap-horizontal-outline"
+                label={vi.report.activeLoans}
+                value={String(overview?.activeLoans ?? "—")}
+              />
+            </View>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <StatTile
+                icon="alert-circle-outline"
+                label={vi.report.overdueLoans}
+                value={String(overview?.overdueLoans ?? "—")}
+                danger={Boolean(overview && overview.overdueLoans > 0)}
+              />
+              <StatTile
+                icon="cash-outline"
+                label={vi.report.unpaidFines}
+                value={overview ? `${overview.unpaidFinesTotal.toLocaleString("vi-VN")}đ` : "—"}
+                danger={Boolean(overview && overview.unpaidFinesCount > 0)}
+              />
+            </View>
+
+            <Text style={{ fontSize: 13, fontWeight: "700", color: colors.navy, marginTop: 4 }}>Thao tác nhanh</Text>
+            <View style={{ flexDirection: "row", gap: 10 }}>
+              <QuickActionTile
+                icon="book-outline"
+                label={vi.book.addNew}
+                onPress={() => router.push("/(app)/sach/moi")}
+              />
+              <QuickActionTile
+                icon="person-add-outline"
+                label={vi.patron.addNew}
+                onPress={() => router.push("/(app)/ban-doc/moi")}
+              />
+            </View>
+
+            {overdue && overdue.length > 0 && (
+              <>
+                <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+                  <Text style={{ fontSize: 13, fontWeight: "700", color: colors.navy }}>{vi.report.overdueSummary}</Text>
+                  <Pressable onPress={() => router.push("/(app)/bao-cao")}>
+                    <Text style={{ fontSize: 12, fontWeight: "600", color: colors.navy }}>Xem tất cả →</Text>
+                  </Pressable>
+                </View>
+                {overdue.slice(0, 5).map((item) => (
+                  <Card key={item.loanId}>
+                    <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+                      <Text style={{ fontWeight: "700", color: colors.textPrimary, flex: 1 }} numberOfLines={1}>
+                        {item.bookTitle}
+                      </Text>
+                      <Badge tone="danger">
+                        {item.daysOverdue} {vi.report.daysOverdue}
+                      </Badge>
+                    </View>
+                    <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 4 }}>
+                      {item.patronName} ({item.studentCode})
+                    </Text>
+                    <Text style={{ fontSize: 12, color: colors.dangerText, marginTop: 2, fontWeight: "600" }}>
+                      {vi.report.estimatedFine}: {item.estimatedFine.toLocaleString("vi-VN")}đ
+                    </Text>
+                  </Card>
+                ))}
+              </>
+            )}
+          </>
+        )}
+
         {!isStaff && overdueLoans.length > 0 && (
           <View
             style={{
