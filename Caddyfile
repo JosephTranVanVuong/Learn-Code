@@ -1,0 +1,20 @@
+{$PUBLIC_DOMAIN} {
+	# API, tài liệu Swagger, file upload -> container api
+	handle /api/* {
+		reverse_proxy api:4000
+	}
+	handle /uploads/* {
+		reverse_proxy api:4000
+	}
+	handle /health {
+		reverse_proxy api:4000
+	}
+	handle /docs* {
+		reverse_proxy api:4000
+	}
+
+	# Còn lại -> container web (Next.js)
+	handle {
+		reverse_proxy web:3000
+	}
+}

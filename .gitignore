@@ -13,5 +13,6 @@ packages/database/prisma/dev.db
 packages/database/prisma/dev.db-journal
 packages/database/prisma/backups/
 apps/api/uploads/
+/data/
 .vscode/*
 !.vscode/extensions.json

@@ -12,6 +12,7 @@
     "test": "turbo run test",
     "db:generate": "pnpm --filter @thuvien/database db:generate",
     "db:migrate": "pnpm --filter @thuvien/database db:migrate",
+    "db:migrate:deploy": "pnpm --filter @thuvien/database db:migrate:deploy",
     "db:seed": "pnpm --filter @thuvien/database db:seed",
     "setup": "pnpm install && pnpm db:generate && pnpm db:migrate && pnpm db:seed"
   },
