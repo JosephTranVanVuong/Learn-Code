@@ -11,6 +11,47 @@ Lê Bảo Tịnh" lên một máy tính chạy Windows luôn bật trong mạng 
 Đọc và làm theo TỪNG BƯỚC theo đúng thứ tự. Nếu có bước nào báo lỗi,
 đọc phần "XỬ LÝ SỰ CỐ THƯỜNG GẶP" ở cuối tài liệu trước khi bỏ qua.
 
+Tài liệu này đã được CẬP NHẬT nhiều lần sau khi cài đặt thử và thao
+tác thật trên máy thật — mọi lỗi/hiện tượng nhắc tới trong tài liệu
+đều đã thật sự xảy ra, không phải suy đoán lý thuyết.
+
+
+--------------------------------------------------------------------
+GHI CHÚ: CÁC LỖI THỰC TẾ ĐÃ GẶP VÀ ĐÃ SỬA KHI CÀI ĐẶT THỬ
+--------------------------------------------------------------------
+
+1. Lệnh chạy API mặc định ("node dist/server.js") KHÔNG chạy được —
+   đã đổi cách chạy API sang dùng "tsx" trực tiếp (Phần 6, 9).
+
+2. Thiếu file packages\database\.env sẽ khiến CẢ 3 lệnh khởi tạo cơ
+   sở dữ liệu ở Phần 6 báo lỗi liên quan "DATABASE_URL" — xem Phần
+   5.2.
+
+3. PM2 KHÔNG gọi trực tiếp qua "pnpm" được trên Windows (kể cả để
+   trong dấu ngoặc kép) — phải dùng file ecosystem.config.js trỏ
+   thẳng vào file thật của từng công cụ, đã có sẵn trong mã nguồn —
+   xem Phần 9.
+
+4. Máy khác mở được trang web nhưng ĐĂNG NHẬP BÁO LỖI và trang tra
+   cứu sách KHÔNG hiện được cuốn nào — do 2 file cấu hình
+   (apps\api\.env, apps\web\.env.local) bị để "localhost" thay vì IP
+   thật của máy chủ — xem Phần 5.3, 5.4 và mục 6 phần Xử lý sự cố.
+
+5. Nếu chuyển sang chạy PM2 kiểu Windows Service (Phần 9.3): tiến
+   trình API chạy dưới tài khoản hệ thống "Local Service" bị lỗi
+   "EPERM: ...mkdir ...Temp\tsx-LOCAL SERVICE" và cứ khởi động lại
+   liên tục — do công cụ "tsx" cố tạo thư mục tạm trong thư mục cá
+   nhân của tài khoản Windows thường, mà tài khoản "Local Service"
+   không có quyền ghi vào đó. File ecosystem.config.js trong mã
+   nguồn đã có sẵn cách sửa (chỉ định rõ TEMP/TMP dùng chung) — xem
+   chi tiết Phần 9.3.
+
+6. Sau khi chuyển sang PM2 kiểu Windows Service, mọi lệnh "pm2 ..."
+   BẮT BUỘC phải gõ trong PowerShell mở bằng "Run as administrator"
+   — gõ bằng quyền thường sẽ báo lỗi "connect EPERM //./pipe/
+   rpc.sock" vì không kết nối được vào tiến trình chạy dưới tài
+   khoản "Local Service".
+
 
 --------------------------------------------------------------------
 PHẦN 0: MỘT SỐ KHÁI NIỆM CẦN BIẾT TRƯỚC
@@ -323,6 +364,8 @@ từng công cụ.
   a new file?" nghĩa là file bị thiếu — dán đúng nội dung dưới đây vào
   rồi lưu lại):
 
+      const tmpDir = "C:\\ProgramData\\pm2\\tmp";
+
       module.exports = {
         apps: [
           {
@@ -331,6 +374,7 @@ từng công cụ.
             args: "src/server.ts",
             cwd: "./apps/api",
             interpreter: "node",
+            env: { TEMP: tmpDir, TMP: tmpDir },
           },
           {
             name: "thuvien-web",
@@ -338,9 +382,15 @@ từng công cụ.
             args: "start",
             cwd: "./apps/web",
             interpreter: "node",
+            env: { TEMP: tmpDir, TMP: tmpDir },
           },
         ],
       };
+
+  (Phần "env: { TEMP: ..., TMP: ... }" là để phòng lỗi ở mục 5 phần
+  GHI CHÚ đầu tài liệu — chỉ thật sự cần thiết nếu sau này chuyển
+  sang chạy PM2 kiểu Windows Service ở Phần 9.3, nhưng để sẵn từ đầu
+  không gây hại gì khi chạy theo cách PM2 thường ở Phần 9.1/9.2.)
 
   Nếu file đã có sẵn đúng nội dung, đóng Notepad lại (không cần lưu).
 
@@ -390,6 +440,16 @@ hướng dẫn thêm phần này.
   đổi: cần quyền Administrator, và có gián đoạn ngắn cho web/API trong
   lúc chuyển đổi.
 
+  Bước 0 — (Chỉ cần nếu trước đó từng thử cài rồi gặp lỗi/bỏ dở) Dọn
+  sạch dấu vết lần thử trước, mở PowerShell quyền Administrator, gõ:
+
+      Remove-Item "C:\ProgramData\npm" -Recurse -Force -ErrorAction SilentlyContinue
+      Remove-Item "C:\ProgramData\pm2" -Recurse -Force -ErrorAction SilentlyContinue
+
+  (Lý do: đã kiểm chứng thật — nếu lần cài trước bị dở dang, 2 thư
+  mục này còn sót lại file cấu hình/quyền cũ dễ gây xung đột khi cài
+  lại. Với lần cài đầu tiên thì bỏ qua bước này.)
+
   Bước 1 — Tải pm2-installer (dùng Git đã cài ở Phần 1.3):
 
       cd D:\
@@ -420,7 +480,24 @@ hướng dẫn thêm phần này.
 
       pm2 list
 
-  Phải thấy lại "thuvien-api" và "thuvien-web" ở trạng thái "online".
+  Phải thấy lại "thuvien-api" và "thuvien-web" ở trạng thái "online",
+  cột "↺" (số lần restart) đứng yên, không tăng liên tục.
+
+  LỖI THẬT ĐÃ GẶP — nếu "thuvien-api" cứ "errored"/"↺" tăng liên tục:
+  gõ "pm2 logs thuvien-api --lines 30" (vẫn trong cửa sổ
+  Administrator) để xem log. Nếu thấy dòng lỗi dạng "EPERM: operation
+  not permitted, mkdir ...Temp\tsx-LOCAL SERVICE" — đây là lỗi đã biết
+  (mục 5 phần GHI CHÚ đầu tài liệu): tài khoản "Local Service" không
+  có quyền ghi vào thư mục Temp của tài khoản Windows thường. File
+  ecosystem.config.js trong mã nguồn (từ Phần 9.1) đã có sẵn cách sửa
+  (chỉ định TEMP/TMP riêng) — nếu vẫn gặp lỗi này nghĩa là file đang
+  dùng là bản CŨ chưa có phần sửa đó; cập nhật lại mã nguồn (git pull)
+  rồi chạy lại:
+
+      pm2 delete thuvien-api
+      pm2 start ecosystem.config.js --only thuvien-api
+      pm2 save
+
   Mở trình duyệt kiểm tra http://localhost:4000/health và
   http://localhost:3000 vẫn hoạt động bình thường.
 
@@ -432,7 +509,14 @@ hướng dẫn thêm phần này.
   Từ giờ PM2 tự chạy dưới dạng Service thật, không cần "pm2-startup
   install" nữa — luôn nhớ mở PowerShell quyền Administrator mỗi khi
   cần gõ lệnh "pm2 ..." sau này (PM2 kiểu Service chỉ cho tương tác
-  qua cửa sổ quyền Administrator).
+  qua cửa sổ quyền Administrator — gõ bằng quyền thường sẽ báo lỗi
+  "connect EPERM //./pipe/rpc.sock", đã kiểm chứng thật).
+
+  ƯU ĐIỂM THÊM (đã kiểm chứng thật): cách này còn tự động khắc phục
+  luôn nhược điểm "chỉ tự chạy khi có người đăng nhập" ở Phần 9.2 —
+  PM2 kiểu Windows Service tự chạy ngay khi máy khởi động xong, kể cả
+  khi mất điện đột ngột và không ai đăng nhập lại, không cần bật thêm
+  "đăng nhập tự động" (auto-logon) nữa.
 
   Nguồn tham khảo: https://github.com/jessety/pm2-installer
 
@@ -562,6 +646,25 @@ XỬ LÝ SỰ CỐ THƯỜNG GẶP
    → Đăng nhập vào đúng tài khoản Windows đã cài PM2, mở PowerShell
      gõ "pm2 list" — nếu trống, gõ "pm2 resurrect" để chạy lại thủ
      công. Xem lại lưu ý ở cuối Phần 9 về auto-logon.
+   → Nếu đã chuyển sang PM2 kiểu Windows Service (Phần 9.3), phải mở
+     PowerShell quyền Administrator mới gõ lệnh "pm2" được — xem mục
+     6 ngay dưới đây nếu không quen thao tác này.
+
+6) Đã chuyển sang PM2 kiểu Windows Service (Phần 9.3), gõ "pm2 ..."
+   báo lỗi "connect EPERM //./pipe/rpc.sock"
+   → Đóng cửa sổ PowerShell hiện tại, mở lại 1 cửa sổ MỚI bằng "Run as
+     administrator" (xem cách mở ở Phần 0), rồi gõ lại lệnh "pm2 ..."
+     đó. Từ khi chuyển sang kiểu Service, MỌI lệnh "pm2" đều bắt buộc
+     phải gõ trong cửa sổ quyền Administrator.
+
+7) Đã chuyển sang PM2 kiểu Windows Service (Phần 9.3), "thuvien-api"
+   cứ "errored"/tăng "↺" liên tục, không vào được :4000
+   → Mở PowerShell quyền Administrator, gõ "pm2 logs thuvien-api
+     --lines 30" xem log. Nếu thấy dòng "EPERM: ...mkdir ...Temp\
+     tsx-LOCAL SERVICE" — xem hướng dẫn xử lý chi tiết ở Bước 4, Phần
+     9.3 (cập nhật mã nguồn để lấy bản ecosystem.config.js đã sửa,
+     rồi "pm2 delete thuvien-api" + "pm2 start ecosystem.config.js
+     --only thuvien-api" + "pm2 save").
 
 
 ====================================================================
