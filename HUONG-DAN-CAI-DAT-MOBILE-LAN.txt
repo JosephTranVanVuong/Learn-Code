@@ -13,42 +13,6 @@ sổ lệnh luôn mở khi có người dùng app. Nếu sau này bạn muốn b
 app cài đặt thật (có icon riêng, không cần Expo Go, không cần giữ máy
 chủ mở cửa sổ lệnh), hỏi lại để được hướng dẫn cách dùng EAS Build.
 
-Tài liệu này đã được CẬP NHẬT sau khi cài đặt thử và thao tác thật
-trên máy thật — phần "GHI CHÚ" ngay dưới đây tóm tắt các lỗi/hiện
-tượng đã thật sự gặp phải, để bạn hiểu vì sao tài liệu viết như vậy.
-
-
---------------------------------------------------------------------
-GHI CHÚ: CÁC LỖI/HIỆN TƯỢNG THỰC TẾ ĐÃ GẶP KHI CÀI ĐẶT THỬ
---------------------------------------------------------------------
-
-1. PM2 (công cụ giữ tiến trình chạy nền, đã dùng cho web/API) KHÔNG
-   dùng được cho lệnh "expo start" trên Windows — đã thử 2 cách khác
-   nhau để ép PM2 quản lý tiến trình này, cả 2 đều lỗi (1 cách báo
-   thiếu module, 1 cách báo "spawn EINVAL"). Kết luận: phần mobile
-   PHẢI chạy trực tiếp trong 1 cửa sổ lệnh, không quản lý qua PM2 được
-   — xem Phần 4, 6.
-
-2. Lệnh đúng để khởi động là "pnpm exec expo start --host lan" — đã
-   thử "pnpm dev -- --host lan" nhưng bị lỗi chuyển tiếp tham số
-   (Expo nhận nhầm thành nhiều tham số rời rạc), không dùng cách đó.
-
-3. Sau khi ĐÓNG cửa sổ đang chạy Expo (bấm X hoặc Ctrl+C), Metro thật
-   sự tắt hẳn (đã kiểm chứng), NHƯNG app trên điện thoại vẫn còn dùng
-   tiếp được bình thường — đây KHÔNG phải lỗi, xem giải thích ở Phần 6
-   và mục 5 phần Xử lý sự cố.
-
-4. Cách tìm-và-tắt tiến trình Expo theo TÊN LỆNH (dò chữ "expo" trong
-   danh sách tiến trình) không đáng tin cậy — có lúc tiến trình con
-   của Metro không hiện đúng tên lệnh khi dò theo cách đó. Cách đáng
-   tin cậy hơn nhiều là dò theo CỔNG 8081 đang bị chiếm bởi tiến trình
-   nào rồi tắt đúng tiến trình đó — file stop-expo-lan.bat ở Phần 6
-   dùng đúng cách này.
-
-5. Việc đăng ký tự khởi động (Task Scheduler) BẮT BUỘC phải chạy bằng
-   PowerShell quyền Administrator — chạy bằng quyền thường sẽ báo lỗi
-   "Access is denied".
-
 
 --------------------------------------------------------------------
 PHẦN 0: NHỮNG GÌ CẦN CÓ SẴN TRƯỚC KHI BẮT ĐẦU
@@ -86,11 +50,9 @@ file mới, dán dòng sau:
 
 Lưu file (Ctrl+S) rồi đóng Notepad.
 
-LƯU Ý — ĐÂY LÀ LỖI THẬT ĐÃ GẶP: nếu IP của MÁY CHỦ từng bị đổi (chưa
-đặt cố định ở Phần 2 của file HUONG-DAN-CAI-DAT-LAN.txt), app mobile
-sẽ mở được màn hình nhưng KHÔNG gọi được API — cần sửa lại dòng này
-cho khớp IP hiện tại rồi khởi động lại (đóng cửa sổ đang chạy Expo,
-mở lại theo Phần 4 — Expo không tự đọc lại file .env khi đang chạy).
+LƯU Ý: nếu IP của MÁY CHỦ từng bị đổi (chưa đặt cố định), phải sửa lại
+dòng này cho khớp IP hiện tại, nếu không app mobile sẽ không gọi được
+API dù vẫn mở được màn hình app.
 
 
 --------------------------------------------------------------------
@@ -126,29 +88,24 @@ Gõ:
       cd D:\thuvien\apps\mobile
       pnpm exec expo start --host lan
 
-QUAN TRỌNG — ĐÃ KIỂM CHỨNG THẬT: phải dùng đúng cụm lệnh này. Không
-dùng "pnpm dev -- --host lan" (bị lỗi chuyển tiếp tham số, Expo sẽ
-không nhận đúng "--host lan"). Không dùng "pnpm dev" suông (thiếu
-"--host lan" có lúc Expo tự chuyển sang chế độ "tunnel" — đi vòng qua
-máy chủ của Expo trên Internet, chậm hơn nhiều và không cần thiết khi
-dùng chung mạng LAN).
-
 Chờ tới khi thấy dòng "Waiting on http://localhost:8081" và một mã QR
-hiện ra ngay trong cửa sổ PowerShell (dòng chữ "localhost" ở đây chỉ
-là cách Metro tự ghi log, không có nghĩa là chỉ máy chủ mới vào được —
-đã kiểm chứng thật bằng cách gọi vào đúng địa chỉ IP LAN của máy chủ ở
-cổng 8081 và nhận được phản hồi bình thường).
+hiện ra ngay trong cửa sổ PowerShell.
 
-CỬA SỔ NÀY PHẢI ĐỂ MỞ LIÊN TỤC trong suốt thời gian mọi người còn cần
-TẢI MỚI/CẬP NHẬT app mobile — đóng cửa sổ này sẽ khiến ai CHƯA từng mở
-app không vào được nữa. Có thể thu nhỏ (minimize) cửa sổ, không cần
-đóng lại. (Xem thêm Phần 6 về việc ai ĐÃ mở app rồi thì vẫn dùng tiếp
-được kể cả khi cửa sổ này bị đóng.)
+QUAN TRỌNG: PHẢI dùng đúng cụm "--host lan" như trên. Nếu chỉ gõ
+"pnpm dev" hoặc thiếu "--host lan", có lúc Expo sẽ tự chuyển sang chế
+độ "tunnel" (đi vòng qua máy chủ của Expo trên Internet) — chế độ đó
+CHẬM hơn nhiều và không cần thiết khi dùng chung mạng LAN.
 
-(Ghi chú kỹ thuật — đã thử thật: PM2 KHÔNG dùng tin cậy được cho lệnh
-"expo start" trên Windows, đã thử 2 cách khác nhau để ép PM2 chạy được
-lệnh này, cả 2 đều lỗi. Vì vậy phần mobile chạy trực tiếp trong cửa sổ
-lệnh thay vì chạy nền qua PM2 như web/API.)
+CỬA SỔ POWERSHELL NÀY PHẢI ĐỂ MỞ LIÊN TỤC trong suốt thời gian mọi
+người còn dùng app mobile — đóng cửa sổ này sẽ khiến app trên điện
+thoại của mọi người ngừng tải được (màn hình báo lỗi kết nối). Có thể
+thu nhỏ (minimize) cửa sổ, không cần đóng lại.
+
+(Ghi chú kỹ thuật: PM2 — công cụ giữ tiến trình chạy nền đã dùng cho
+web/API — KHÔNG dùng tin cậy được cho lệnh "expo start" trên Windows
+do cách Expo CLI cần một biến môi trường nội bộ đặc biệt mà PM2 không
+tự thiết lập đúng. Vì vậy phần mobile này chạy trực tiếp trong cửa sổ
+PowerShell thay vì chạy nền qua PM2 như web/API.)
 
 
 --------------------------------------------------------------------
@@ -177,59 +134,34 @@ lưu bớt lại (cache).
 
 
 --------------------------------------------------------------------
-PHẦN 6: KHỞI ĐỘNG / DỪNG BẰNG FILE .BAT (KHUYẾN NGHỊ)
+PHẦN 6: GIỮ CHO MÁY CHỦ MOBILE CHẠY LÂU DÀI
 --------------------------------------------------------------------
 
-Vì không dùng được PM2 (xem GHI CHÚ mục 1), cách gọn nhất là dùng 2
-file .bat có sẵn — bấm đúp để chạy, không cần tự gõ lệnh mỗi lần.
+Vì không dùng được PM2 (xem ghi chú ở Phần 4), có 2 lựa chọn:
 
-6.1. File khởi động — D:\thuvien\apps\mobile\start-expo-lan.bat
+Cách 1 (đơn giản nhất): để cửa sổ PowerShell đang chạy "expo start"
+mở liên tục, thu nhỏ xuống thanh taskbar. Nếu MÁY CHỦ khởi động lại,
+cần tự mở lại bằng tay (lặp lại lệnh ở Phần 4).
 
-  Nếu file chưa có, tạo bằng Notepad với đúng nội dung:
+Cách 2 (tự mở lại khi đăng nhập máy): tạo 1 tác vụ Task Scheduler chạy
+sẵn 1 file .bat mỗi khi đăng nhập Windows — cửa sổ sẽ tự mở lại, vẫn
+cần để mở liên tục nhưng không cần tự tay gõ lệnh mỗi lần đăng nhập.
+
+  Bước 1 — Tạo file D:\thuvien\apps\mobile\start-expo-lan.bat với nội
+  dung:
 
       @echo off
       cd /d "D:\thuvien\apps\mobile"
       pnpm exec expo start --host lan
 
-  Bấm đúp vào file này để khởi động — một cửa sổ sẽ mở ra và chạy
-  Metro bundler, giống hệt Phần 4. ĐỂ CỬA SỔ NÀY MỞ LIÊN TỤC.
-
-  Cách dừng: bấm vào cửa sổ đó, nhấn Ctrl+C (gõ Y rồi Enter nếu được
-  hỏi "Terminate batch job"), hoặc đơn giản bấm nút X đóng cửa sổ lại
-  — đã kiểm chứng thật, đóng bằng X tắt hẳn được Metro.
-
-6.2. File dừng (dùng khi không tìm thấy/không còn thấy cửa sổ đang
-     chạy Expo, vd. nó chạy qua Task Scheduler ở mục 6.3 bên dưới) —
-     D:\thuvien\apps\mobile\stop-expo-lan.bat
-
-  Tạo bằng Notepad với đúng nội dung sau (LƯU Ý: cách này dò theo CỔNG
-  8081 đang bị chiếm bởi tiến trình nào rồi tắt đúng tiến trình đó —
-  đáng tin cậy hơn nhiều so với dò theo tên lệnh, đã kiểm chứng thật):
-
-      @echo off
-      echo Dang tim tien trinh dang dung cong 8081 (Metro bundler cho app mobile)...
-      powershell -NoProfile -Command "$conn = Get-NetTCPConnection -LocalPort 8081 -State Listen -ErrorAction SilentlyContinue; if ($conn) { $targetId = $conn[0].OwningProcess; try { Stop-Process -Id $targetId -Force -ErrorAction Stop; Write-Output ('Da dung tien trinh PID ' + $targetId) } catch { Write-Output ('Khong the tu dung PID ' + $targetId + ' (' + $_.Exception.Message + '). Hay mo Task Manager (chuot phai vao thanh taskbar - Task Manager), tim tien trinh Node.js co PID ' + $targetId + ', bam End Task. Neu van khong duoc, mo Task Manager bang quyen Administrator.') } } else { Write-Output 'Khong co tien trinh nao dang dung cong 8081 - Metro co the da dung san roi.' }"
-      pause
-
-  Bấm đúp để chạy — nó sẽ tự báo đã tắt được hay chưa. Nếu báo không
-  tự tắt được (hiếm khi xảy ra), làm đúng theo hướng dẫn nó in ra
-  (Task Manager).
-
-6.3. (Tuỳ chọn) Tự động khởi động lại khi đăng nhập Windows
-
-  Mở PowerShell với quyền Administrator (xem cách mở ở Phần 0 của file
-  HUONG-DAN-CAI-DAT-LAN.txt — BẮT BUỘC phải là quyền Administrator,
-  đã thử bằng quyền thường và bị lỗi "Access is denied"), gõ:
+  Bước 2 — Mở PowerShell với quyền Administrator (xem cách mở ở Phần
+  0 của file HUONG-DAN-CAI-DAT-LAN.txt), gõ:
 
       schtasks /create /tn "ThuVienMobileExpo" /tr "\"D:\thuvien\apps\mobile\start-expo-lan.bat\"" /sc onlogon /rl limited /f
 
   Từ lần đăng nhập Windows tiếp theo, 1 cửa sổ sẽ tự mở và chạy Metro
-  bundler — vẫn phải để cửa sổ đó mở, chỉ là không cần tự tay chạy
-  start-expo-lan.bat mỗi lần đăng nhập nữa.
-
-  Muốn hủy tự khởi động này, mở PowerShell quyền Administrator, gõ:
-
-      schtasks /delete /tn "ThuVienMobileExpo" /f
+  bundler — vẫn phải để cửa sổ đó mở, chỉ là không cần tự tay gõ lệnh
+  mỗi lần nữa.
 
 
 --------------------------------------------------------------------
@@ -240,10 +172,9 @@ PHẦN 7: CẬP NHẬT SAU NÀY (KHI CÓ THAY ĐỔI MÃ NGUỒN)
       git pull
       pnpm install
 
-Sau đó dừng cửa sổ đang chạy Expo (Phần 6.1 hoặc chạy
-stop-expo-lan.bat), rồi mở lại (start-expo-lan.bat hoặc Phần 4). Điện
-thoại KHÔNG cần cài lại gì — lần mở app tiếp theo trong Expo Go sẽ tự
-tải bản mã nguồn mới.
+Sau đó đóng cửa sổ PowerShell đang chạy "expo start" cũ (Ctrl+C), rồi
+mở lại theo Phần 4. Điện thoại KHÔNG cần cài lại gì — lần mở app tiếp
+theo trong Expo Go sẽ tự tải bản mã nguồn mới.
 
 
 --------------------------------------------------------------------
@@ -255,58 +186,28 @@ XỬ LÝ SỰ CỐ THƯỜNG GẶP
    → Kiểm tra điện thoại và MÁY CHỦ có cùng 1 mạng Wi-Fi không (không
      phải điện thoại đang dùng 4G/5G).
    → Kiểm tra đã mở cổng 8081 trên tường lửa chưa (Phần 3).
-   → Kiểm tra cửa sổ chạy Expo ở Phần 4/6.1 có còn mở không (nếu bị
-     đóng, ai CHƯA từng mở app trước đó sẽ không tải được — xem thêm
-     mục 5 bên dưới).
+   → Kiểm tra cửa sổ PowerShell chạy "expo start" ở Phần 4 có còn mở
+     không (nếu bị đóng, app sẽ mất kết nối).
    → Thử nhập thủ công "exp://<IP-máy-chủ>:8081" thay vì quét QR.
 
 2) App mở được nhưng không hiện dữ liệu sách/độc giả (lỗi kết nối
    API)
    → Kiểm tra lại file apps\mobile\.env ở Phần 1 — IP có đúng với
-     MÁY CHỦ hiện tại không (đây là lỗi thật hay gặp nhất — xem GHI
-     CHÚ cuối Phần 1).
+     MÁY CHỦ hiện tại không.
    → Kiểm tra phần API (:4000) có đang chạy không — mở trình duyệt
      trên chính MÁY CHỦ, gõ http://localhost:4000/health, phải thấy
      {"status":"ok"}.
-   → Sau khi sửa file .env, PHẢI đóng (Ctrl+C hoặc bấm X) và chạy lại
-     lệnh ở Phần 4 — Expo không tự đọc lại file .env khi đang chạy.
+   → Sau khi sửa file .env, PHẢI đóng (Ctrl+C) và chạy lại lệnh ở
+     Phần 4 — Expo không tự đọc lại file .env khi đang chạy.
 
 3) Expo tự chuyển sang chế độ "tunnel" (thấy chữ "tunnel" thay vì
    "lan" khi khởi động)
    → Chạy lại đúng lệnh "pnpm exec expo start --host lan" như Phần 4,
-     không dùng "pnpm dev" suông, không dùng "pnpm dev -- --host lan".
+     không dùng "pnpm dev" suông.
 
-4) Lỡ đóng cửa sổ đang chạy Expo, muốn mở lại
-   → Bấm đúp start-expo-lan.bat (Phần 6.1), hoặc gõ lại đúng 2 dòng
-     lệnh ở Phần 4. Ai đang mở app trên điện thoại không cần làm gì cả
-     (xem mục 5 ngay dưới đây).
-
-5) Đã đóng cửa sổ Expo (tắt hẳn Metro), nhưng app trên điện thoại của
-   một số người VẪN dùng được bình thường — đây KHÔNG PHẢI lỗi
-   (đã kiểm chứng thật — xem GHI CHÚ mục 3 đầu tài liệu). Lý do: Expo
-   Go đã tải sẵn mã nguồn giao diện vào bộ nhớ điện thoại từ lần kết
-   nối trước, và dữ liệu sách/độc giả app hiển thị đến từ phần API
-   (cổng 4000) — đây là tiến trình HOÀN TOÀN RIÊNG với Metro, tắt
-   Metro không tắt API. Việc đóng cửa sổ Metro chỉ có nghĩa: ai CHƯA
-   từng mở app sẽ không tải MỚI được nữa; ai đã mở sẵn thì vẫn dùng
-   tiếp bình thường tới khi họ tự đóng app trên điện thoại.
-   → Nếu muốn app ngừng hẳn với TẤT CẢ mọi người, cần thêm 1 trong 2
-     cách: nhờ từng người tự thoát hẳn app Expo Go (vuốt để đóng app
-     khỏi danh sách đa nhiệm trên điện thoại), hoặc tắt luôn phần API
-     bằng lệnh "pm2 stop thuvien-api" trên MÁY CHỦ (khi đó ai đang mở
-     app vẫn vào được màn hình nhưng sẽ báo lỗi không tải được dữ
-     liệu, giống như mất mạng).
-
-6) Chạy stop-expo-lan.bat nhưng báo "Khong the tu dung PID ... Access
-   is denied"
-   → Làm đúng theo hướng dẫn nó in ra: mở Task Manager (chuột phải
-     thanh taskbar → Task Manager), tìm đúng PID được báo trong danh
-     sách tiến trình Node.js, bấm End Task. Nếu Task Manager thường
-     cũng không tắt được, mở Task Manager bằng quyền Administrator.
-
-7) Đăng ký tự khởi động (Phần 6.3) báo lỗi "Access is denied"
-   → Phải mở PowerShell bằng đúng quyền Administrator (chuột phải →
-     "Run as administrator") rồi chạy lại lệnh "schtasks /create...".
+4) Lỡ đóng cửa sổ PowerShell đang chạy Expo
+   → Mở lại PowerShell, chạy lại đúng 2 dòng lệnh ở Phần 4. Ai đang mở
+     app trên điện thoại cần thoát ra và mở lại app Expo Go.
 
 
 ====================================================================

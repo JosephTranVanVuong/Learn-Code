@@ -11,48 +11,6 @@ Lê Bảo Tịnh" lên một máy tính chạy Windows luôn bật trong mạng 
 Đọc và làm theo TỪNG BƯỚC theo đúng thứ tự. Nếu có bước nào báo lỗi,
 đọc phần "XỬ LÝ SỰ CỐ THƯỜNG GẶP" ở cuối tài liệu trước khi bỏ qua.
 
-Tài liệu này đã được CẬP NHẬT sau khi cài đặt thử thực tế trên máy
-thật — mọi bước dưới đây (kể cả các đoạn "LƯU Ý"/"QUAN TRỌNG") đều
-phản ánh đúng những gì thật sự xảy ra khi cài, không phải chỉ suy
-đoán trên lý thuyết. Phần "GHI CHÚ" ngay dưới đây tóm tắt lại các lỗi
-đã thật sự gặp phải trong lần cài đặt thử, để bạn biết vì sao tài liệu
-lại nhấn mạnh những điểm đó.
-
-
---------------------------------------------------------------------
-GHI CHÚ: CÁC LỖI THỰC TẾ ĐÃ GẶP VÀ ĐÃ SỬA KHI CÀI ĐẶT THỬ
---------------------------------------------------------------------
-
-Danh sách này liệt kê đúng những lỗi đã xảy ra thật khi cài thử trên
-máy thật, để bạn hiểu vì sao các bước ở dưới lại viết như vậy (không
-phải chỉ để tham khảo — mỗi lỗi dưới đây đều đã được sửa và phản ánh
-vào đúng phần tương ứng trong tài liệu):
-
-1. Lệnh chạy API mặc định ("node dist/server.js") KHÔNG chạy được
-   trên máy thật — bị lỗi không load nổi 2 gói dùng chung của dự án.
-   Đã đổi cách chạy API sang dùng "tsx" trực tiếp (Phần 6, 9) — đây là
-   thay đổi ở chính mã nguồn dự án, không phải chỉ ở tài liệu này.
-
-2. Thiếu file packages\database\.env sẽ khiến CẢ 3 lệnh khởi tạo cơ
-   sở dữ liệu ở Phần 6 báo lỗi liên quan "DATABASE_URL" (lỗi đầu tiên
-   thường có mã "P1012") — xem chi tiết ở Phần 5.2.
-
-3. PM2 (công cụ giữ web/API chạy nền) KHÔNG gọi trực tiếp qua "pnpm"
-   được trên Windows (báo lỗi "Script not found") — phải dùng file
-   ecosystem.config.js trỏ thẳng vào file thật của từng công cụ. File
-   này đã có sẵn trong mã nguồn dự án — xem Phần 9.
-
-4. Khi máy khác trong công ty mở được trang web nhưng ĐĂNG NHẬP BÁO
-   LỖI và trang tra cứu sách KHÔNG hiện được cuốn sách nào (dù máy chủ
-   vẫn thấy đầy đủ dữ liệu) — nguyên nhân là 2 file cấu hình
-   (apps\api\.env, apps\web\.env.local) bị để giá trị "localhost" thay
-   vì IP thật của máy chủ. Đây là lỗi rất dễ gặp — xem kỹ Phần 5.3,
-   5.4 và mục 6 ở phần Xử lý sự cố.
-
-5. Thư mục apps\api\uploads (chứa ảnh bìa sách/ảnh độc giả) KHÔNG cần
-   tạo tay trước — phần mềm tự tạo khi có ảnh đầu tiên được tải lên,
-   đã kiểm chứng bằng cách xóa hẳn thư mục này và chạy thử lại.
-
 
 --------------------------------------------------------------------
 PHẦN 0: MỘT SỐ KHÁI NIỆM CẦN BIẾT TRƯỚC
@@ -68,7 +26,7 @@ PHẦN 0: MỘT SỐ KHÁI NIỆM CẦN BIẾT TRƯỚC
 
 - "Địa chỉ IP": một dãy số như 192.168.1.50 dùng để nhận diện MÁY CHỦ
   trong mạng LAN — giống như "địa chỉ nhà" để các máy khác tìm đến.
-  Phần 2 sẽ hướng dẫn lấy và cố định địa chỉ này.
+  Bước 2 sẽ hướng dẫn lấy và cố định địa chỉ này.
 
 - "PowerShell": chương trình dòng lệnh có sẵn trong Windows, dùng để
   gõ các lệnh cài đặt. Cách mở: bấm nút Start (biểu tượng Windows góc
@@ -77,9 +35,7 @@ PHẦN 0: MỘT SỐ KHÁI NIỆM CẦN BIẾT TRƯỚC
   quản trị) → bấm "Yes" nếu Windows hỏi xác nhận.
 
   MỌI lệnh trong tài liệu này đều gõ vào cửa sổ PowerShell đó, sau đó
-  bấm Enter để chạy. Một số bước (mở tường lửa) BẮT BUỘC phải mở bằng
-  "Run as administrator" như trên, các bước khác thì mở bình thường
-  cũng được.
+  bấm Enter để chạy.
 
 
 --------------------------------------------------------------------
@@ -140,7 +96,7 @@ PHẦN 1: CÀI CÁC CÔNG CỤ CẦN THIẾT TRÊN MÁY CHỦ
       dist
 
   - Dán toàn bộ vào ổ đĩa của MÁY CHỦ, ví dụ D:\thuvien
-  - Bỏ qua Phần 3 (git clone) bên dưới, đi thẳng tới Phần 2.
+  - Bỏ qua bước 1.4 (git clone) bên dưới, đi thẳng tới Bước 2.
 
 
 --------------------------------------------------------------------
@@ -149,9 +105,7 @@ PHẦN 2: ĐẶT ĐỊA CHỈ IP CỐ ĐỊNH CHO MÁY CHỦ
 
 Bước này RẤT QUAN TRỌNG — bỏ qua sẽ khiến phần mềm ngừng hoạt động khi
 router cấp lại địa chỉ IP khác cho máy (thường xảy ra sau khi tắt mở
-máy/router nhiều lần). Đây cũng chính là nguyên nhân của lỗi số 4 ở
-phần GHI CHÚ đầu tài liệu — nếu IP máy chủ từng đổi mà quên cập nhật
-lại các file cấu hình, sẽ gặp đúng lỗi đó.
+máy/router nhiều lần).
 
 Cách 1 (khuyến nghị, dễ và an toàn hơn): nhờ người phụ trách mạng/
 router của công ty "đặt IP cố định" (DHCP reservation) cho MÁY CHỦ
@@ -161,8 +115,7 @@ PowerShell:
       ipconfig /all
 
   Tìm tới phần card mạng đang dùng (Wi-Fi hoặc Ethernet), dòng
-  "Physical Address" chính là địa chỉ MAC (dạng AA-BB-CC-11-22-33). Ở
-  ngay phía trên, dòng "IPv4 Address" cho biết địa chỉ IP hiện tại.
+  "Physical Address" chính là địa chỉ MAC (dạng AA-BB-CC-11-22-33).
 
 Cách 2 (tự làm, nếu không có ai quản lý router):
   - Bấm Start → gõ "Control Panel" → mở ra
@@ -233,8 +186,7 @@ PHẦN 5: TẠO FILE CẤU HÌNH (RẤT QUAN TRỌNG — LÀM ĐÚNG TỪNG DÒN
 
 5.2. Tạo file cấu hình cho phần cơ sở dữ liệu (RẤT QUAN TRỌNG — thiếu
      bước này, CẢ 3 lệnh ở Phần 6 đều sẽ báo lỗi liên quan
-     "DATABASE_URL", lệnh đầu tiên gặp lỗi thường có mã "P1012" — xem
-     mục 1 ở phần GHI CHÚ đầu tài liệu)
+     "DATABASE_URL", lệnh đầu tiên gặp lỗi thường có mã "P1012")
 
   Gõ lệnh mở Notepad tạo file mới:
 
@@ -270,14 +222,9 @@ PHẦN 5: TẠO FILE CẤU HÌNH (RẤT QUAN TRỌNG — LÀM ĐÚNG TỪNG DÒN
       COOKIE_SECRET="<dán chuỗi bí mật thứ 2 từ bước 5.1>"
       WEB_ORIGIN="http://192.168.1.50:3000"
 
-  Lưu ý — ĐỌC KỸ (đây là lỗi thật đã gặp — mục 4 ở phần GHI CHÚ):
-  - Dòng WEB_ORIGIN: BẮT BUỘC phải là địa chỉ IP THẬT của MÁY CHỦ đã
-    đặt ở Phần 2 (vd. "http://192.168.1.50:3000"), giữ nguyên số cổng
-    ":3000" ở cuối. TUYỆT ĐỐI KHÔNG được để "http://localhost:3000" —
-    nếu để "localhost", máy khác trong công ty sẽ mở được trang web
-    nhưng đăng nhập báo lỗi và không tra cứu được sách nào (vì trình
-    duyệt của họ gửi địa chỉ IP thật, không phải "localhost", nên bị
-    chặn — gọi là lỗi CORS).
+  Lưu ý:
+  - Dòng WEB_ORIGIN: thay 192.168.1.50 bằng IP thật của MÁY CHỦ đã
+    đặt ở Phần 2, giữ nguyên số cổng ":3000" ở cuối.
   - TUYỆT ĐỐI KHÔNG thêm dòng "NODE_ENV=production" vào file này.
     Lý do: phần mềm chỉ gửi được "phiên đăng nhập ghi nhớ" (cookie)
     qua kết nối HTTPS có khóa bảo mật khi NODE_ENV=production, mà
@@ -295,19 +242,9 @@ PHẦN 5: TẠO FILE CẤU HÌNH (RẤT QUAN TRỌNG — LÀM ĐÚNG TỪNG DÒN
   Bấm Yes khi được hỏi tạo file mới. Dán nội dung sau (thay IP giống
   bước trên):
 
-      NEXT_PUBLIC_API_URL=http://192.168.1.50:4000
+      NEXT_PUBLIC_API_URL="http://192.168.1.50:4000"
 
   Lưu file (Ctrl+S) rồi đóng Notepad.
-
-  QUAN TRỌNG (đây cũng là lỗi thật đã gặp — mục 4 ở phần GHI CHÚ):
-  giá trị này BẮT BUỘC phải là IP THẬT của MÁY CHỦ, KHÔNG được để
-  "localhost" — giá trị này bị "đóng cứng" vào bản build ở Phần 7,
-  nghĩa là trình duyệt của MỌI người dùng (không chỉ máy chủ) sẽ dùng
-  đúng địa chỉ này để gọi API. Nếu để "localhost", mỗi máy khác khi mở
-  trang web sẽ tự gọi API vào chính máy của họ (không có gì ở đó) chứ
-  không phải vào máy chủ — dẫn đến trang tra cứu sách không hiện được
-  cuốn nào. Nếu lỡ sửa giá trị này SAU KHI đã build ở Phần 7, phải
-  build lại (Phần 7) và khởi động lại (Phần 9) thì mới có tác dụng.
 
 
 --------------------------------------------------------------------
@@ -348,13 +285,7 @@ Chờ vài phút tới khi thấy dòng "Compiled successfully" hoặc tương t
 và PowerShell quay lại dấu nhắc lệnh.
 
 (Phần API không cần build — chạy trực tiếp bằng công cụ "tsx" ở bước
-sau, không cần đóng gói riêng — xem thêm mục 1 ở phần GHI CHÚ đầu tài
-liệu về lý do vì sao API không dùng cách build thông thường.)
-
-NHỚ: nếu sau này bạn sửa lại file apps\web\.env.local (Phần 5.4), luôn
-luôn phải build lại bằng đúng lệnh này rồi khởi động lại (Phần 9) thì
-thay đổi mới có tác dụng — Next.js không tự đọc lại file này khi đang
-chạy.
+sau, không cần đóng gói riêng.)
 
 
 --------------------------------------------------------------------
@@ -377,16 +308,14 @@ PHẦN 9: KHỞI CHẠY PHẦN MỀM BẰNG PM2
 
 PM2 trên Windows không chạy đúng được nếu gọi trực tiếp qua "pnpm"
 (dù có để trong dấu ngoặc kép hay không) — sẽ bị lỗi "Script not
-found" vì Windows xử lý file .cmd của pnpm khác Linux/Mac (đây là lỗi
-thật đã gặp — mục 3 ở phần GHI CHÚ đầu tài liệu). Cách chạy đúng là
-dùng 1 file cấu hình riêng cho PM2, trỏ thẳng tới file thật của từng
-công cụ (tsx cho API, next cho Web) thay vì gọi qua "pnpm".
+found" vì Windows xử lý file .cmd của pnpm khác Linux/Mac. Cách chạy
+đúng là tạo 1 file cấu hình riêng cho PM2, trỏ thẳng tới file thật của
+từng công cụ.
 
 9.1. Kiểm tra file cấu hình PM2
 
   File này ĐÃ CÓ SẴN trong mã nguồn dự án (nằm ở D:\thuvien\ecosystem.
-  config.js, đi kèm sẵn khi git clone/copy code) — không cần tạo mới.
-  Mở lên xem lại cho chắc chắn:
+  config.js) — không cần tạo mới. Mở lên xem lại cho chắc chắn:
 
       notepad D:\thuvien\ecosystem.config.js
 
@@ -437,8 +366,7 @@ Windows:
       pm2-startup install
 
 Lệnh cuối chạy xong sẽ hiện dòng "Successfully added PM2 startup
-registry entry." — không cần trả lời câu hỏi gì thêm (đã kiểm chứng
-thật, lệnh này không hỏi tương tác gì cả).
+registry entry." — không cần trả lời câu hỏi gì thêm.
 
 LƯU Ý QUAN TRỌNG: cách này chỉ tự chạy lại khi có người ĐĂNG NHẬP vào
 tài khoản Windows đó sau khi khởi động máy. Nếu MÁY CHỦ bị mất điện
@@ -447,16 +375,66 @@ chạy. Muốn chống mất điện tuyệt đối, cần bật "đăng nhập 
 (auto-logon) cho tài khoản Windows đó — nếu cần, hỏi lại để được
 hướng dẫn thêm phần này.
 
-9.3. Mỗi khi sửa file .env (Phần 5), phải khởi động lại
+9.3. (Tuỳ chọn — nếu thấy phiền) Chạy PM2 ẩn hoàn toàn bằng Windows
+     Service thật, hết hẳn cửa sổ đen
 
-  Sau khi sửa bất kỳ file .env nào ở Phần 5 (packages\database\.env,
-  apps\api\.env, apps\web\.env.local), PM2 KHÔNG tự đọc lại — phải
-  chạy lại lệnh sau thì thay đổi mới có tác dụng:
+  BỐI CẢNH — ĐÃ KIỂM CHỨNG THẬT: cách "pm2-startup install" ở trên vẫn
+  có thể hiện ra 1 cửa sổ đen (console) trong thời gian ngắn mỗi khi
+  máy khởi động lại/đăng nhập — đây là hạn chế đã biết của PM2 trên
+  Windows (đã kiểm chứng: chính tiến trình NỀN của PM2 tự bật cửa sổ
+  khi nó phải khởi động lại từ đầu, KHÔNG phải do app thuvien-api/
+  thuvien-web — thêm 1 app mới vào PM2 đang chạy sẵn thì không hề hiện
+  cửa sổ nào). Nếu điều này gây khó chịu, có thể chuyển hẳn sang chạy
+  PM2 dưới dạng Windows Service thật (qua dự án cộng đồng
+  "pm2-installer") — Windows Service không bao giờ hiện cửa sổ. Đánh
+  đổi: cần quyền Administrator, và có gián đoạn ngắn cho web/API trong
+  lúc chuyển đổi.
 
-      pm2 restart thuvien-api thuvien-web
+  Bước 1 — Tải pm2-installer (dùng Git đã cài ở Phần 1.3):
 
-  Riêng nếu sửa apps\web\.env.local, còn phải build lại TRƯỚC khi
-  restart — xem lưu ý ở cuối Phần 7.
+      cd D:\
+      git clone https://github.com/jessety/pm2-installer.git
+
+  Bước 2 — Mở PowerShell với quyền Administrator (bắt buộc), gõ:
+
+      cd D:\pm2-installer
+      npm run configure
+      npm run configure-policy
+      npm run setup
+
+  3 lệnh trên sẽ: chỉnh cấu hình npm hệ thống, cập nhật quyền chạy
+  PowerShell nếu cần, rồi cài PM2 chạy như 1 Windows Service dưới tài
+  khoản hệ thống "Local Service" (khác hẳn PM2 đang chạy hiện tại của
+  tài khoản bạn).
+
+  Bước 3 — QUAN TRỌNG: PM2 kiểu Service này KHÔNG tự thấy được danh
+  sách thuvien-api/thuvien-web đã lưu trước đó (nó dùng một nơi lưu
+  trữ khác hẳn) — phải đăng ký lại, vẫn trong cửa sổ PowerShell quyền
+  Administrator đó:
+
+      cd D:\thuvien
+      pm2 start ecosystem.config.js
+      pm2 save
+
+  Bước 4 — Kiểm tra:
+
+      pm2 list
+
+  Phải thấy lại "thuvien-api" và "thuvien-web" ở trạng thái "online".
+  Mở trình duyệt kiểm tra http://localhost:4000/health và
+  http://localhost:3000 vẫn hoạt động bình thường.
+
+  Bước 5 — Gỡ cách tự khởi động CŨ (Phần 9.2) để tránh chạy trùng 2
+  lần, vẫn trong cửa sổ Administrator:
+
+      pm2-startup uninstall
+
+  Từ giờ PM2 tự chạy dưới dạng Service thật, không cần "pm2-startup
+  install" nữa — luôn nhớ mở PowerShell quyền Administrator mỗi khi
+  cần gõ lệnh "pm2 ..." sau này (PM2 kiểu Service chỉ cho tương tác
+  qua cửa sổ quyền Administrator).
+
+  Nguồn tham khảo: https://github.com/jessety/pm2-installer
 
 
 --------------------------------------------------------------------
@@ -496,14 +474,10 @@ trình duyệt (Chrome/Edge/Firefox đều được), gõ vào thanh địa ch�
 
 (thay bằng IP thật của MÁY CHỦ)
 
-Nếu hiện ra trang đăng nhập của phần mềm thư viện là bước đầu THÀNH
-CÔNG. Đăng nhập bằng tài khoản ở Phần 6 (thuthu@cvpl.edu.vn /
-Admin@123), sau đó vào phần đổi mật khẩu để đổi ngay.
+Nếu hiện ra trang đăng nhập của phần mềm thư viện là THÀNH CÔNG.
 
-Thử tiếp vào trang "Tra cứu" xem có hiện danh sách sách không — nếu
-đăng nhập lỗi HOẶC trang tra cứu không hiện sách nào (dù máy chủ vẫn
-thấy đầy đủ), xem ngay mục 6 ở phần Xử lý sự cố bên dưới — đây là lỗi
-thật đã gặp trong lần cài thử, không phải trường hợp hiếm gặp.
+Đăng nhập bằng tài khoản ở Phần 6 (thuthu@cvpl.edu.vn / Admin@123),
+sau đó vào phần đổi mật khẩu để đổi ngay.
 
 
 --------------------------------------------------------------------
@@ -538,9 +512,6 @@ file:
 
       D:\thuvien\apps\api\uploads\
 
-(Thư mục này KHÔNG cần tạo tay trước — phần mềm tự tạo khi có ảnh
-được tải lên lần đầu, đã kiểm chứng thật.)
-
 Phần mềm đã tự động có cơ chế sao lưu định kỳ vào thư mục:
 
       D:\thuvien\packages\database\prisma\backups\
@@ -574,8 +545,7 @@ XỬ LÝ SỰ CỐ THƯỜNG GẶP
      (thiếu dấu ngoặc kép, thừa dấu cách) — mở lại file bằng Notepad
      kiểm tra.
 
-3) Máy khác trong công ty không mở được trang web (không hiện gì cả,
-   trình duyệt báo "không thể kết nối"/"connection refused")
+3) Máy khác trong công ty không mở được trang web
    → Kiểm tra lại đã làm đúng Phần 10 (mở tường lửa) chưa.
    → Kiểm tra máy đó có thật sự cùng mạng LAN với MÁY CHỦ không (thử
      "ping 192.168.1.50" từ máy đó trong PowerShell, phải có phản hồi
@@ -592,26 +562,6 @@ XỬ LÝ SỰ CỐ THƯỜNG GẶP
    → Đăng nhập vào đúng tài khoản Windows đã cài PM2, mở PowerShell
      gõ "pm2 list" — nếu trống, gõ "pm2 resurrect" để chạy lại thủ
      công. Xem lại lưu ý ở cuối Phần 9 về auto-logon.
-
-6) Máy khác MỞ ĐƯỢC trang web, nhưng ĐĂNG NHẬP báo lỗi, và trang
-   "Tra cứu" không hiện cuốn sách nào — trong khi trên chính MÁY CHỦ
-   (mở bằng "localhost") mọi thứ vẫn bình thường
-   (Đây là lỗi thật đã gặp khi cài thử — xem mục 4 ở phần GHI CHÚ đầu
-   tài liệu. Nguyên nhân hầu như luôn là 1 trong 2 file cấu hình bị để
-   "localhost" thay vì IP thật.)
-   → Mở lại D:\thuvien\apps\api\.env, kiểm tra dòng WEB_ORIGIN phải là
-     "http://<IP-thật-của-máy-chủ>:3000", KHÔNG được là "localhost".
-   → Mở lại D:\thuvien\apps\web\.env.local, kiểm tra
-     NEXT_PUBLIC_API_URL phải là "http://<IP-thật-của-máy-chủ>:4000",
-     KHÔNG được là "localhost".
-   → Nếu phải sửa file apps\web\.env.local, BẮT BUỘC build lại:
-
-         cd D:\thuvien
-         pnpm --filter @thuvien/web build
-         pm2 restart thuvien-api thuvien-web
-
-     (chỉ sửa file mà không build lại + restart thì sẽ KHÔNG có tác
-     dụng gì, vì giá trị cũ đã bị đóng cứng vào bản build trước đó).
 
 
 ====================================================================
