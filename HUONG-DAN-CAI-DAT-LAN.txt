@@ -305,19 +305,47 @@ Chờ cài xong (vài chục giây tới 1-2 phút).
 PHẦN 9: KHỞI CHẠY PHẦN MỀM BẰNG PM2
 --------------------------------------------------------------------
 
-Gõ lần lượt (chú ý mỗi dòng "cd" sẽ đổi thư mục làm việc trước khi
-chạy dòng "pm2 start" ngay sau nó):
+PM2 trên Windows không chạy đúng được nếu gọi trực tiếp qua "pnpm"
+(dù có để trong dấu ngoặc kép hay không) — sẽ bị lỗi "Script not
+found" vì Windows xử lý file .cmd của pnpm khác Linux/Mac. Cách chạy
+đúng là tạo 1 file cấu hình riêng cho PM2, trỏ thẳng tới file thật của
+từng công cụ.
 
-      cd D:\thuvien\apps\api
-      pm2 start "pnpm start" --name thuvien-api
+9.1. Tạo file cấu hình PM2
 
-      cd D:\thuvien\apps\web
-      pm2 start "pnpm start" --name thuvien-web
+  Gõ:
 
-  (Lưu ý: phải để cả cụm "pnpm start" trong dấu ngoặc kép như trên.
-  Nếu gõ "pm2 start pnpm --name ... -- start" sẽ bị lỗi
-  "Script not found" do cách Windows chạy file .cmd của pnpm khác
-  Linux/Mac.)
+      notepad D:\thuvien\ecosystem.config.js
+
+  Bấm Yes khi được hỏi tạo file mới. Dán chính xác nội dung sau:
+
+      module.exports = {
+        apps: [
+          {
+            name: "thuvien-api",
+            script: "node_modules/tsx/dist/cli.mjs",
+            args: "src/server.ts",
+            cwd: "./apps/api",
+            interpreter: "node",
+          },
+          {
+            name: "thuvien-web",
+            script: "node_modules/next/dist/bin/next",
+            args: "start",
+            cwd: "./apps/web",
+            interpreter: "node",
+          },
+        ],
+      };
+
+  Lưu file (Ctrl+S) rồi đóng Notepad.
+
+9.2. Khởi chạy bằng file cấu hình vừa tạo
+
+  Gõ:
+
+      cd D:\thuvien
+      pm2 start ecosystem.config.js
 
 Kiểm tra cả 2 đã chạy chưa:
 
@@ -333,7 +361,8 @@ Windows:
       pm2 save
       pm2-startup install
 
-Lệnh cuối sẽ hỏi vài câu, cứ để mặc định và bấm Enter.
+Lệnh cuối chạy xong sẽ hiện dòng "Successfully added PM2 startup
+registry entry." — không cần trả lời câu hỏi gì thêm.
 
 LƯU Ý QUAN TRỌNG: cách này chỉ tự chạy lại khi có người ĐĂNG NHẬP vào
 tài khoản Windows đó sau khi khởi động máy. Nếu MÁY CHỦ bị mất điện
@@ -440,8 +469,15 @@ XỬ LÝ SỰ CỐ THƯỜNG GẶP
 
 2) "pm2 list" thấy trạng thái "errored"
    → Gõ: pm2 logs thuvien-api  (hoặc thuvien-web) để xem dòng lỗi chi
-     tiết. Thường do file .env ở Phần 5 gõ sai định dạng (thiếu dấu
-     ngoặc kép, thừa dấu cách) — mở lại file bằng Notepad kiểm tra.
+     tiết.
+   → Nếu lỗi có chữ "Script not found": kiểm tra lại file
+     ecosystem.config.js ở Phần 9.1 đã lưu đúng thư mục D:\thuvien
+     chưa, và bạn đã "cd D:\thuvien" trước khi gõ "pm2 start
+     ecosystem.config.js" chưa (đường dẫn "cwd" trong file này tính
+     tương đối theo vị trí file ecosystem.config.js).
+   → Nếu lỗi khác: thường do file .env ở Phần 5 gõ sai định dạng
+     (thiếu dấu ngoặc kép, thừa dấu cách) — mở lại file bằng Notepad
+     kiểm tra.
 
 3) Máy khác trong công ty không mở được trang web
    → Kiểm tra lại đã làm đúng Phần 10 (mở tường lửa) chưa.
