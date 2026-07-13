@@ -184,7 +184,27 @@ PHẦN 5: TẠO FILE CẤU HÌNH (RẤT QUAN TRỌNG — LÀM ĐÚNG TỪNG DÒN
   3f9a1c7e2b8d4f6a1c9e7b2d4f8a6c1e3f9a1c7e2b8d4f6a1c9e7b2d4f8a6c1e
   (Không được dùng chuỗi ví dụ này — phải là chuỗi máy bạn tự sinh ra)
 
-5.2. Tạo file cấu hình cho phần API (phần "hậu trường" xử lý dữ liệu)
+5.2. Tạo file cấu hình cho phần cơ sở dữ liệu (RẤT QUAN TRỌNG — thiếu
+     bước này Phần 6 sẽ báo lỗi "P1012")
+
+  Gõ lệnh mở Notepad tạo file mới:
+
+      notepad D:\thuvien\packages\database\.env
+
+  Windows sẽ hỏi "Do you want to create a new file?" → bấm Yes.
+
+  Dán đúng 1 dòng sau vào Notepad:
+
+      DATABASE_URL="file:./prod.db"
+
+  Lưu file (Ctrl+S) rồi đóng Notepad.
+
+  Lý do cần file riêng này: công cụ Prisma (dùng để tạo/cập nhật cơ sở
+  dữ liệu ở Phần 6) chỉ tự đọc file .env đặt CÙNG thư mục với nó
+  (packages\database), không đọc được file .env ở apps\api. Thiếu file
+  này, lệnh "pnpm db:migrate:deploy" ở Phần 6 sẽ báo lỗi mã "P1012".
+
+5.3. Tạo file cấu hình cho phần API (phần "hậu trường" xử lý dữ liệu)
 
   Gõ lệnh mở Notepad tạo file mới:
 
@@ -212,7 +232,7 @@ PHẦN 5: TẠO FILE CẤU HÌNH (RẤT QUAN TRỌNG — LÀM ĐÚNG TỪNG DÒN
     xuất sau khoảng 15 phút dùng phần mềm.
   - Lưu file: menu File → Save (hoặc Ctrl+S), rồi đóng Notepad.
 
-5.3. Tạo file cấu hình cho phần Web (giao diện người dùng)
+5.4. Tạo file cấu hình cho phần Web (giao diện người dùng)
 
   Gõ:
 
@@ -289,10 +309,15 @@ Gõ lần lượt (chú ý mỗi dòng "cd" sẽ đổi thư mục làm việc t
 chạy dòng "pm2 start" ngay sau nó):
 
       cd D:\thuvien\apps\api
-      pm2 start pnpm --name thuvien-api -- start
+      pm2 start "pnpm start" --name thuvien-api
 
       cd D:\thuvien\apps\web
-      pm2 start pnpm --name thuvien-web -- start
+      pm2 start "pnpm start" --name thuvien-web
+
+  (Lưu ý: phải để cả cụm "pnpm start" trong dấu ngoặc kép như trên.
+  Nếu gõ "pm2 start pnpm --name ... -- start" sẽ bị lỗi
+  "Script not found" do cách Windows chạy file .cmd của pnpm khác
+  Linux/Mac.)
 
 Kiểm tra cả 2 đã chạy chưa:
 
