@@ -185,7 +185,8 @@ PHẦN 5: TẠO FILE CẤU HÌNH (RẤT QUAN TRỌNG — LÀM ĐÚNG TỪNG DÒN
   (Không được dùng chuỗi ví dụ này — phải là chuỗi máy bạn tự sinh ra)
 
 5.2. Tạo file cấu hình cho phần cơ sở dữ liệu (RẤT QUAN TRỌNG — thiếu
-     bước này Phần 6 sẽ báo lỗi "P1012")
+     bước này, CẢ 3 lệnh ở Phần 6 đều sẽ báo lỗi liên quan
+     "DATABASE_URL", lệnh đầu tiên gặp lỗi thường có mã "P1012")
 
   Gõ lệnh mở Notepad tạo file mới:
 
@@ -311,13 +312,16 @@ found" vì Windows xử lý file .cmd của pnpm khác Linux/Mac. Cách chạy
 đúng là tạo 1 file cấu hình riêng cho PM2, trỏ thẳng tới file thật của
 từng công cụ.
 
-9.1. Tạo file cấu hình PM2
+9.1. Kiểm tra file cấu hình PM2
 
-  Gõ:
+  File này ĐÃ CÓ SẴN trong mã nguồn dự án (nằm ở D:\thuvien\ecosystem.
+  config.js) — không cần tạo mới. Mở lên xem lại cho chắc chắn:
 
       notepad D:\thuvien\ecosystem.config.js
 
-  Bấm Yes khi được hỏi tạo file mới. Dán chính xác nội dung sau:
+  Nội dung phải giống như sau (nếu Notepad hỏi "Do you want to create
+  a new file?" nghĩa là file bị thiếu — dán đúng nội dung dưới đây vào
+  rồi lưu lại):
 
       module.exports = {
         apps: [
@@ -338,9 +342,9 @@ từng công cụ.
         ],
       };
 
-  Lưu file (Ctrl+S) rồi đóng Notepad.
+  Nếu file đã có sẵn đúng nội dung, đóng Notepad lại (không cần lưu).
 
-9.2. Khởi chạy bằng file cấu hình vừa tạo
+9.2. Khởi chạy bằng file cấu hình đó
 
   Gõ:
 
@@ -429,8 +433,9 @@ Khi cần cập nhật phiên bản mới của phần mềm, mở PowerShell r�
       pm2 restart thuvien-api thuvien-web
 
 (Nếu không dùng Git, thay dòng "git pull" bằng việc chép đè thư mục
-mã nguồn mới vào, giữ nguyên 2 file .env đã tạo ở Phần 5, rồi chạy
-tiếp các lệnh còn lại.)
+mã nguồn mới vào, giữ nguyên 3 file cấu hình đã tạo ở Phần 5
+(packages\database\.env, apps\api\.env, apps\web\.env.local), rồi
+chạy tiếp các lệnh còn lại.)
 
 
 --------------------------------------------------------------------
