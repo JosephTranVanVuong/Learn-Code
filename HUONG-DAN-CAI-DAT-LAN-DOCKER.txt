@@ -1,0 +1,428 @@
+====================================================================
+HƯỚNG DẪN CÀI ĐẶT HỆ THỐNG THƯ VIỆN LÊN MÁY CHỦ TRONG MẠNG NỘI BỘ
+(Dành cho người mới — DÙNG DOCKER — máy chủ chạy Windows)
+====================================================================
+
+Tài liệu này hướng dẫn cài đặt phần mềm "Thư viện Đại Chủng Viện Phaolô
+Lê Bảo Tịnh" lên một máy tính chạy Windows luôn bật trong mạng nội bộ,
+sử dụng Docker (một cách đóng gói phần mềm gọn gàng, dễ cập nhật/khởi
+động lại hơn). Nếu bạn muốn cài KHÔNG dùng Docker, xem file
+"HUONG-DAN-CAI-DAT-LAN.txt" thay vì file này.
+
+Đọc và làm theo TỪNG BƯỚC theo đúng thứ tự. Nếu có bước nào báo lỗi,
+đọc phần "XỬ LÝ SỰ CỐ THƯỜNG GẶP" ở cuối tài liệu trước khi bỏ qua.
+
+
+--------------------------------------------------------------------
+PHẦN 0: MỘT SỐ KHÁI NIỆM CẦN BIẾT TRƯỚC
+--------------------------------------------------------------------
+
+- "MÁY CHỦ": máy tính Windows sẽ cài phần mềm này, phải luôn bật và
+  kết nối mạng thì mọi người mới dùng được. Toàn bộ hướng dẫn dưới đây
+  thực hiện TRÊN máy này.
+
+- "Mạng LAN": mạng nội bộ của công ty (wifi/dây mạng trong văn phòng).
+  Mọi máy tính trong công ty phải cùng kết nối vào mạng này thì mới
+  truy cập được vào phần mềm.
+
+- "Địa chỉ IP": một dãy số như 192.168.1.50 dùng để nhận diện MÁY CHỦ
+  trong mạng LAN. Bước ở Phần 2 sẽ hướng dẫn lấy và cố định địa chỉ
+  này.
+
+- "Docker": một phần mềm giúp đóng gói ứng dụng (cả phần "hậu trường"
+  xử lý dữ liệu lẫn phần giao diện web) thành các "hộp" độc lập gọi là
+  "container", chạy giống nhau trên mọi máy, dễ khởi động/dừng/cập
+  nhật bằng vài lệnh, không cần cài riêng lẻ Node.js/pnpm như cách
+  thông thường.
+
+- "PowerShell": chương trình dòng lệnh có sẵn trong Windows, dùng để
+  gõ các lệnh cài đặt. Cách mở: bấm nút Start (biểu tượng Windows góc
+  dưới trái màn hình) → gõ "PowerShell" → bấm chuột phải vào kết quả
+  "Windows PowerShell" → chọn "Run as administrator" (Chạy với quyền
+  quản trị) → bấm "Yes" nếu Windows hỏi xác nhận.
+
+  MỌI lệnh trong tài liệu này đều gõ vào cửa sổ PowerShell đó, sau đó
+  bấm Enter để chạy.
+
+
+--------------------------------------------------------------------
+PHẦN 1: CÀI DOCKER DESKTOP TRÊN MÁY CHỦ
+--------------------------------------------------------------------
+
+1.1. Kiểm tra điều kiện máy
+
+  Docker Desktop cần Windows 10 (bản 64-bit, phát hành 2020 trở về
+  sau) hoặc Windows 11. Hầu hết máy tính công ty mua trong vài năm gần
+  đây đều đáp ứng được, không cần kiểm tra thêm.
+
+1.2. Cài đặt
+
+  - Mở trình duyệt, truy cập: https://www.docker.com/products/docker-desktop/
+  - Bấm tải bản dành cho Windows, chờ tải xong (file khá nặng, khoảng
+    500MB, có thể mất vài phút tùy tốc độ mạng).
+  - Mở file vừa tải, làm theo hướng dẫn cài đặt, GIỮ NGUYÊN tùy chọn
+    mặc định "Use WSL 2 instead of Hyper-V" (đã được tích sẵn).
+  - Nếu máy chưa bật tính năng WSL2, trình cài đặt sẽ tự hiện thông
+    báo và link hướng dẫn bật — cứ làm theo link đó, thường chỉ cần
+    khởi động lại máy 1 lần.
+  - Sau khi cài xong, Windows có thể yêu cầu khởi động lại máy —
+    khởi động lại rồi tiếp tục bước sau.
+
+  Nếu máy báo lỗi liên quan đến "virtualization" (ảo hóa) chưa bật:
+  cần vào BIOS/UEFI của máy (thường bấm phím Del, F2 hoặc F10 ngay lúc
+  mới bật máy, tùy hãng máy) để bật mục có tên gần giống
+  "Virtualization Technology (VT-x)" hoặc "SVM Mode", sau đó lưu lại
+  và khởi động vào Windows như bình thường. Nếu không tự làm được,
+  nhờ bộ phận IT/người rành phần cứng hỗ trợ bước này.
+
+1.3. Khởi động Docker Desktop lần đầu
+
+  - Mở Docker Desktop từ Start Menu, chờ tới khi biểu tượng con cá voi
+    ở khay hệ thống (góc dưới phải màn hình, cạnh đồng hồ) đứng yên
+    (không còn hiện hiệu ứng đang tải) — nghĩa là Docker đã sẵn sàng.
+  - Nếu có màn hình hỏi đăng nhập tài khoản Docker Hub: có thể bấm
+    "Skip" bỏ qua, không bắt buộc phải có tài khoản để dùng.
+
+1.4. Bật tự khởi động cùng Windows
+
+  - Trong Docker Desktop, bấm biểu tượng bánh răng (Settings) ở góc
+    trên phải.
+  - Ở tab "General", tích chọn "Start Docker Desktop when you sign
+    in".
+  - Bấm "Apply & restart" nếu được hỏi.
+
+1.5. Kiểm tra Docker đã cài đúng chưa
+
+  Mở PowerShell (xem cách mở ở Phần 0), gõ:
+
+      docker --version
+      docker compose version
+
+  Cả 2 lệnh phải hiện ra số phiên bản (không báo lỗi "không phải là
+  lệnh nội bộ hay bên ngoài..."). Nếu báo lỗi, đóng PowerShell mở lại
+  cửa sổ mới rồi thử lại; nếu vẫn lỗi, khởi động lại máy.
+
+
+--------------------------------------------------------------------
+PHẦN 2: ĐẶT ĐỊA CHỈ IP CỐ ĐỊNH CHO MÁY CHỦ
+--------------------------------------------------------------------
+
+Bước này RẤT QUAN TRỌNG — bỏ qua sẽ khiến phần mềm ngừng hoạt động khi
+router cấp lại địa chỉ IP khác cho máy.
+
+Cách 1 (khuyến nghị): nhờ người phụ trách mạng/router của công ty "đặt
+IP cố định" (DHCP reservation) cho MÁY CHỦ này, dựa theo địa chỉ MAC
+của máy. Xem địa chỉ MAC bằng lệnh:
+
+      ipconfig /all
+
+  Tìm tới card mạng đang dùng (Wi-Fi hoặc Ethernet), dòng
+  "Physical Address" chính là địa chỉ MAC (dạng AA-BB-CC-11-22-33).
+
+Cách 2 (tự làm, nếu không có ai quản lý router):
+  - Bấm Start → gõ "Control Panel" → mở ra
+  - Chọn "Network and Internet" → "Network and Sharing Center"
+  - Bấm "Change adapter settings" (bên trái)
+  - Bấm chuột phải vào card mạng đang dùng → chọn "Properties"
+  - Tích chọn "Internet Protocol Version 4 (TCP/IPv4)" → bấm nút
+    "Properties"
+  - Chọn "Use the following IP address", điền:
+      IP address: một địa chỉ CÒN TRỐNG trong mạng, ví dụ 192.168.1.50
+      Subnet mask: tự động điền 255.255.255.0
+      Default gateway: địa chỉ IP router, thường là 192.168.1.1
+  - DNS: điền giống Default gateway, hoặc 8.8.8.8 nếu không chắc.
+  - Bấm OK, OK để lưu.
+
+GHI NHỚ địa chỉ IP đã đặt, ví dụ 192.168.1.50 — sẽ dùng lại nhiều lần
+ở các bước sau. Trong toàn bộ tài liệu này, mọi chỗ viết "192.168.1.50"
+thì BẠN PHẢI THAY bằng địa chỉ IP thật của MÁY CHỦ.
+
+
+--------------------------------------------------------------------
+PHẦN 3: TẢI MÃ NGUỒN DỰ ÁN VỀ MÁY CHỦ
+--------------------------------------------------------------------
+
+Docker vẫn cần có mã nguồn dự án trên máy để "đóng gói" thành
+container, nên vẫn cần lấy code về như cách thông thường.
+
+3.1. Cài Git (nếu máy chưa có)
+
+  - Truy cập: https://git-scm.com/download/win
+  - Tải và cài đặt, bấm Next theo mặc định đến hết.
+  - Kiểm tra: gõ
+
+      git --version
+
+    Phải hiện dòng có chữ "git version".
+
+3.2. Tải mã nguồn
+
+  Mở PowerShell, gõ (thay <url-kho-ma-nguon> bằng địa chỉ Git thật của
+  dự án):
+
+      cd D:\
+      git clone <url-kho-ma-nguon> thuvien
+
+  Sau khi chạy xong sẽ có thư mục D:\thuvien chứa mã nguồn.
+
+  (Nếu không dùng Git: copy thủ công toàn bộ thư mục dự án từ máy
+  đang có sẵn code sang MÁY CHỦ qua USB/thư mục mạng chia sẻ, dán vào
+  D:\thuvien — không cần xóa node_modules như cách không-Docker, vì
+  Docker sẽ tự cài lại mọi thứ bên trong container, nhưng xóa cho nhẹ
+  dung lượng copy cũng không sao.)
+
+
+--------------------------------------------------------------------
+PHẦN 4: TẠO FILE CẤU HÌNH
+--------------------------------------------------------------------
+
+4.1. Tạo 2 chuỗi bí mật ngẫu nhiên
+
+  Gõ lệnh sau HAI LẦN (mỗi lần ra một chuỗi khác nhau), ghi tạm 2 kết
+  quả này ra Notepad để dùng ở bước sau:
+
+      node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+  (Nếu máy chưa có Node.js nên lệnh trên báo lỗi, có thể dùng cách
+  khác: mở PowerShell gõ
+
+      -join ((48..57)+(97..102)|Get-Random -Count 64|%{[char]$_})
+
+  lệnh này cũng in ra một chuỗi ngẫu nhiên dùng được tương tự.)
+
+4.2. Tạo file .env ở thư mục gốc dự án
+
+  Gõ:
+
+      notepad D:\thuvien\.env
+
+  Windows hỏi "Do you want to create a new file?" → bấm Yes.
+
+  Dán nội dung sau vào, thay các phần <...>:
+
+      LAN_HOST=192.168.1.50
+      JWT_ACCESS_SECRET=<dán chuỗi bí mật thứ 1 từ bước 4.1>
+      COOKIE_SECRET=<dán chuỗi bí mật thứ 2 từ bước 4.1>
+
+  Lưu ý: dòng LAN_HOST thay 192.168.1.50 bằng IP thật của MÁY CHỦ đã
+  đặt ở Phần 2 (không có "http://", không có dấu hai chấm và số cổng
+  ở cuối).
+
+  Lưu file (Ctrl+S) rồi đóng Notepad.
+
+  (File mẫu tham khảo có sẵn trong dự án tên là ".env.lan.example" —
+  nội dung ở trên đã đầy đủ, không bắt buộc phải mở file mẫu đó.)
+
+
+--------------------------------------------------------------------
+PHẦN 5: DỰNG (BUILD) VÀ CHẠY BẰNG DOCKER
+--------------------------------------------------------------------
+
+Gõ lần lượt, chờ mỗi lệnh chạy xong rồi mới gõ lệnh tiếp theo:
+
+      cd D:\thuvien
+      docker compose -f docker-compose.lan.yml build
+
+  Lệnh này "đóng gói" phần mềm thành 2 hộp (container) api và web —
+  LẦN ĐẦU chạy sẽ khá lâu (5-15 phút tùy tốc độ máy/mạng) vì phải tải
+  và cài mọi thứ từ đầu. Các lần sau (khi cập nhật code) sẽ nhanh hơn.
+
+  Chờ tới khi PowerShell quay lại dấu nhắc lệnh, không còn chữ chạy
+  thêm, rồi gõ tiếp:
+
+      docker compose -f docker-compose.lan.yml up -d
+
+  Lệnh này khởi động 2 container ở chế độ chạy nền ("-d" nghĩa là
+  detached — chạy ngầm, không chiếm cửa sổ PowerShell).
+
+  Xem log (nhật ký hoạt động) để chắc chắn phần API đã chạy đúng:
+
+      docker compose -f docker-compose.lan.yml logs -f api
+
+  Chờ tới khi thấy dòng "Server listening..." là API đã chạy thành
+  công. Bấm Ctrl+C để thoát xem log (không làm dừng container, chỉ
+  đóng cửa sổ đang xem log).
+
+
+--------------------------------------------------------------------
+PHẦN 6: KHỞI TẠO DỮ LIỆU BAN ĐẦU
+--------------------------------------------------------------------
+
+Gõ:
+
+      docker compose -f docker-compose.lan.yml exec api pnpm --filter @thuvien/database db:seed
+
+Trong kết quả hiện ra, tìm dòng dạng:
+
+      Tài khoản thủ thư: thuthu@cvpl.edu.vn / Admin@123
+
+Đây là tài khoản đăng nhập đầu tiên:
+      Email: thuthu@cvpl.edu.vn
+      Mật khẩu: Admin@123
+
+GHI NHỚ 2 thông tin này. Sau khi đăng nhập lần đầu, vào mục đổi mật
+khẩu để đổi ngay sang mật khẩu khác.
+
+
+--------------------------------------------------------------------
+PHẦN 7: MỞ CỔNG TRÊN TƯỜNG LỬA WINDOWS (FIREWALL)
+--------------------------------------------------------------------
+
+Nếu không làm bước này, các máy khác trong công ty sẽ KHÔNG truy cập
+được vào phần mềm dù MÁY CHỦ đã chạy đúng.
+
+Cách 1 — Gõ lệnh (nhanh nhất, mở PowerShell với quyền quản trị):
+
+      netsh advfirewall firewall add rule name="Thuvien Web" dir=in action=allow protocol=TCP localport=3000
+      netsh advfirewall firewall add rule name="Thuvien API" dir=in action=allow protocol=TCP localport=4000
+
+Cách 2 — Dùng giao diện (nếu không quen dòng lệnh):
+  - Bấm Start → gõ "Windows Defender Firewall with Advanced Security"
+    → mở ra
+  - Bấm "Inbound Rules" (bên trái) → "New Rule..." (bên phải)
+  - Chọn "Port" → Next
+  - Chọn "TCP", ô "Specific local ports" gõ: 3000 → Next
+  - Chọn "Allow the connection" → Next
+  - Để nguyên 3 ô tích (Domain/Private/Public) → Next
+  - Đặt tên "Thuvien Web" → Finish
+  - Lặp lại toàn bộ các bước trên một lần nữa nhưng gõ cổng 4000 và
+    đặt tên "Thuvien API"
+
+
+--------------------------------------------------------------------
+PHẦN 8: KIỂM TRA TỪ MÁY KHÁC TRONG CÔNG TY
+--------------------------------------------------------------------
+
+Trên một máy tính KHÁC, cùng kết nối vào mạng LAN của công ty, mở
+trình duyệt, gõ vào thanh địa chỉ:
+
+      http://192.168.1.50:3000
+
+(thay bằng IP thật của MÁY CHỦ)
+
+Nếu hiện ra trang đăng nhập của phần mềm thư viện là THÀNH CÔNG.
+
+Đăng nhập bằng tài khoản ở Phần 6, sau đó đổi mật khẩu ngay.
+
+
+--------------------------------------------------------------------
+PHẦN 9: TỰ KHỞI ĐỘNG LẠI KHI MẤT ĐIỆN/KHỞI ĐỘNG LẠI MÁY
+--------------------------------------------------------------------
+
+Với Docker, KHÔNG cần cài thêm công cụ nào khác — trong file cấu hình
+docker-compose.lan.yml đã đặt sẵn "restart: unless-stopped", nghĩa là
+2 container sẽ TỰ khởi động lại mỗi khi Docker Desktop khởi động.
+
+Chỉ cần đảm bảo:
+  1. Docker Desktop tự chạy khi đăng nhập Windows (đã bật ở Bước 1.4).
+  2. Vẫn có một giới hạn: nếu MÁY CHỦ mất điện đột ngột và khởi động
+     lại mà KHÔNG có ai đăng nhập vào tài khoản Windows, Docker
+     Desktop sẽ không tự chạy được (cần có phiên đăng nhập). Muốn
+     chống mất điện tuyệt đối, cần bật "đăng nhập tự động" (auto-
+     logon) cho tài khoản Windows đó — nếu cần, hỏi lại để được
+     hướng dẫn thêm phần này.
+
+
+--------------------------------------------------------------------
+PHẦN 10: CÁCH CẬP NHẬT PHẦN MỀM SAU NÀY
+--------------------------------------------------------------------
+
+Khi cần cập nhật phiên bản mới của phần mềm, mở PowerShell rồi gõ:
+
+      cd D:\thuvien
+      git pull
+      docker compose -f docker-compose.lan.yml up -d --build
+
+Lệnh cuối tự đóng gói lại (nếu có thay đổi) và khởi động lại 2
+container với phiên bản mới. Cơ sở dữ liệu và ảnh đã lưu KHÔNG bị mất
+vì được lưu ở thư mục "data" riêng bên ngoài container (xem Phần 11).
+
+(Nếu không dùng Git, thay dòng "git pull" bằng việc chép đè thư mục mã
+nguồn mới vào — chỉ chép đè code, GIỮ NGUYÊN file .env đã tạo ở Phần 4
+và thư mục "data" — rồi chạy tiếp lệnh "docker compose ... up -d
+--build".)
+
+
+--------------------------------------------------------------------
+PHẦN 11: SAO LƯU DỮ LIỆU
+--------------------------------------------------------------------
+
+Với cách chạy bằng Docker, toàn bộ dữ liệu thật (sách, độc giả, lịch
+sử mượn trả, ảnh bìa sách, ảnh đại diện...) nằm ở 2 thư mục sau, NGAY
+TRONG D:\thuvien (không nằm trong container, nên vẫn còn nguyên khi
+cập nhật/khởi động lại container):
+
+      D:\thuvien\data\db\        (cơ sở dữ liệu + các bản sao lưu tự động)
+      D:\thuvien\data\uploads\   (ảnh bìa sách, ảnh đại diện độc giả)
+
+NÊN sao lưu thêm 2 thư mục này ra một ổ đĩa/máy tính KHÁC định kỳ (ví
+dụ mỗi tối), phòng trường hợp MÁY CHỦ hỏng ổ cứng thì vẫn còn dữ liệu.
+Cách đơn giản: dùng "Task Scheduler" có sẵn trong Windows để tự động
+chép 2 thư mục trên sang một ổ USB gắn ngoài hoặc máy tính khác trong
+mạng vào một giờ cố định mỗi ngày. Nếu cần, hỏi lại để được hướng dẫn
+thiết lập chi tiết phần này.
+
+
+--------------------------------------------------------------------
+XỬ LÝ SỰ CỐ THƯỜNG GẶP
+--------------------------------------------------------------------
+
+1) Gõ "docker --version" báo "không phải là lệnh nội bộ hay bên
+   ngoài..."
+   → Đóng hẳn PowerShell, mở lại cửa sổ MỚI rồi thử lại. Nếu vẫn lỗi,
+     kiểm tra Docker Desktop đã thật sự cài xong và đang chạy chưa
+     (biểu tượng con cá voi ở khay hệ thống).
+
+2) Docker Desktop báo lỗi liên quan "WSL 2" hoặc "virtualization"
+   → Xem lại mục 1.2 trong Phần 1 — cần bật WSL2 và/hoặc bật ảo hóa
+     trong BIOS máy. Có thể cần nhờ bộ phận IT hỗ trợ nếu không tự
+     vào được BIOS.
+
+3) Lệnh "docker compose -f docker-compose.lan.yml build" báo lỗi
+   không tìm thấy ổ đĩa D:\thuvien hoặc lỗi liên quan "file sharing"
+   → Mở Docker Desktop → Settings (biểu tượng bánh răng) → Resources
+     → File sharing → thêm ổ đĩa chứa D:\thuvien vào danh sách (nếu
+     chưa có sẵn) → Apply & Restart.
+
+4) "docker compose ... logs -f api" thấy lỗi đỏ, container tự tắt
+   → Đọc kỹ dòng lỗi hiện ra. Thường do file .env ở Phần 4 gõ sai
+     (thiếu giá trị LAN_HOST, hoặc 2 chuỗi bí mật để trống) — mở lại
+     bằng Notepad kiểm tra, sửa xong gõ lại:
+
+      docker compose -f docker-compose.lan.yml up -d --build
+
+5) Máy khác trong công ty không mở được trang web
+   → Kiểm tra lại đã làm đúng Phần 7 (mở tường lửa) chưa.
+   → Kiểm tra máy đó có cùng mạng LAN với MÁY CHỦ không (thử lệnh
+     "ping 192.168.1.50" từ máy đó, phải có phản hồi "Reply from...").
+   → Kiểm tra lại IP thật của MÁY CHỦ (Phần 2), có thể đã bị đổi nếu
+     chưa đặt cố định đúng cách.
+   → Gõ "docker compose -f docker-compose.lan.yml ps" trên MÁY CHỦ để
+     chắc chắn cả 2 container đang ở trạng thái "running".
+
+6) Đăng nhập được nhưng sau ít phút bị tự động đăng xuất
+   → Kiểm tra file .env ở Phần 4 không có dòng nào ghi đè
+     NODE_ENV=production cho phần api (file docker-compose.lan.yml đã
+     tự đặt sẵn giá trị đúng, không cần và không nên tự thêm biến này
+     trong file .env).
+
+7) Khởi động lại MÁY CHỦ xong, phần mềm không tự chạy lại
+   → Đăng nhập vào đúng tài khoản Windows đã cài Docker Desktop, chờ
+     Docker Desktop khởi động xong (biểu tượng cá voi hết hiệu ứng
+     tải), rồi gõ:
+
+      docker compose -f D:\thuvien\docker-compose.lan.yml ps
+
+     Nếu không thấy container nào, gõ:
+
+      cd D:\thuvien
+      docker compose -f docker-compose.lan.yml up -d
+
+   Xem lại lưu ý ở Phần 9 về auto-logon nếu cần chống mất điện tuyệt
+   đối.
+
+
+====================================================================
+HẾT TÀI LIỆU — Nếu gặp lỗi không có trong danh sách trên, ghi lại
+chính xác thông báo lỗi hiện ra và hỏi lại để được hỗ trợ thêm.
+====================================================================

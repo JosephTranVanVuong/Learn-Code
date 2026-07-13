@@ -1,0 +1,37 @@
+# Biến thể dùng cho mạng nội bộ (LAN), KHÔNG có HTTPS/domain — khác với
+# docker-compose.yml (dùng Caddy + Let's Encrypt cho triển khai public).
+# Chạy: docker compose -f docker-compose.lan.yml up -d --build
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      # Cố tình KHÔNG phải "production": route.ts đặt cookie refresh-token
+      # với secure=true khi NODE_ENV=production, mà secure cookie chỉ gửi
+      # được qua HTTPS — LAN dùng HTTP thuần nên phải giữ giá trị này.
+      NODE_ENV: development
+      API_PORT: 4000
+      DATABASE_URL: file:/data/db/thuvien.db
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      WEB_ORIGIN: http://${LAN_HOST}:3000
+    volumes:
+      - ./data/db:/data/db
+      - ./data/uploads:/repo/apps/api/uploads
+    ports:
+      - "4000:4000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://${LAN_HOST}:4000
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"

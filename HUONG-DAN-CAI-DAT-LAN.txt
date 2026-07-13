@@ -1,0 +1,443 @@
+====================================================================
+HƯỚNG DẪN CÀI ĐẶT HỆ THỐNG THƯ VIỆN LÊN MÁY CHỦ TRONG MẠNG NỘI BỘ
+(Dành cho người mới — không dùng Docker — máy chủ chạy Windows)
+====================================================================
+
+Tài liệu này hướng dẫn cài đặt phần mềm "Thư viện Đại Chủng Viện Phaolô
+Lê Bảo Tịnh" lên một máy tính chạy Windows luôn bật trong mạng nội bộ,
+để mọi người trong công ty/đơn vị có thể mở trình duyệt và sử dụng
+được, không cần cài gì trên máy của họ.
+
+Đọc và làm theo TỪNG BƯỚC theo đúng thứ tự. Nếu có bước nào báo lỗi,
+đọc phần "XỬ LÝ SỰ CỐ THƯỜNG GẶP" ở cuối tài liệu trước khi bỏ qua.
+
+
+--------------------------------------------------------------------
+PHẦN 0: MỘT SỐ KHÁI NIỆM CẦN BIẾT TRƯỚC
+--------------------------------------------------------------------
+
+- "MÁY CHỦ": máy tính Windows sẽ cài phần mềm này, phải luôn bật và
+  kết nối mạng thì mọi người mới dùng được. Toàn bộ hướng dẫn dưới đây
+  thực hiện TRÊN máy này.
+
+- "Mạng LAN": mạng nội bộ của công ty (wifi/dây mạng trong văn phòng).
+  Mọi máy tính trong công ty phải cùng kết nối vào mạng này thì mới
+  truy cập được vào phần mềm.
+
+- "Địa chỉ IP": một dãy số như 192.168.1.50 dùng để nhận diện MÁY CHỦ
+  trong mạng LAN — giống như "địa chỉ nhà" để các máy khác tìm đến.
+  Bước 2 sẽ hướng dẫn lấy và cố định địa chỉ này.
+
+- "PowerShell": chương trình dòng lệnh có sẵn trong Windows, dùng để
+  gõ các lệnh cài đặt. Cách mở: bấm nút Start (biểu tượng Windows góc
+  dưới trái màn hình) → gõ "PowerShell" → bấm chuột phải vào kết quả
+  "Windows PowerShell" → chọn "Run as administrator" (Chạy với quyền
+  quản trị) → bấm "Yes" nếu Windows hỏi xác nhận.
+
+  MỌI lệnh trong tài liệu này đều gõ vào cửa sổ PowerShell đó, sau đó
+  bấm Enter để chạy.
+
+
+--------------------------------------------------------------------
+PHẦN 1: CÀI CÁC CÔNG CỤ CẦN THIẾT TRÊN MÁY CHỦ
+--------------------------------------------------------------------
+
+1.1. Cài Node.js (bắt buộc)
+
+  - Mở trình duyệt, truy cập: https://nodejs.org
+  - Tải bản "LTS" (bản ổn định lâu dài, khuyến nghị) — chọn đúng bản
+    Windows Installer (.msi).
+  - Mở file vừa tải, bấm Next liên tục theo mặc định, không cần tick
+    thêm gì đặc biệt, đến cuối bấm Install rồi Finish.
+  - Kiểm tra đã cài đúng chưa: mở PowerShell (theo hướng dẫn Phần 0),
+    gõ:
+
+      node -v
+
+    Nếu hiện ra một dòng dạng "v20.x.x" là thành công. Nếu báo lỗi
+    "node không phải là lệnh nội bộ..." thì cần đóng PowerShell, mở
+    lại cửa sổ PowerShell MỚI (Node.js chỉ nhận sau khi mở lại).
+
+1.2. Bật sẵn công cụ pnpm (trình quản lý gói đi kèm dự án)
+
+  Gõ lần lượt từng dòng sau, bấm Enter sau mỗi dòng:
+
+      corepack enable
+      corepack prepare pnpm@11.10.0 --activate
+
+  Kiểm tra:
+
+      pnpm -v
+
+  Phải hiện ra "11.10.0".
+
+1.3. Cài Git (để tải mã nguồn dự án về máy)
+
+  - Truy cập: https://git-scm.com/download/win
+  - Tải và cài đặt, cứ bấm Next theo mặc định đến hết.
+  - Kiểm tra: gõ
+
+      git --version
+
+    Phải hiện ra một dòng có chữ "git version".
+
+  (Nếu công ty không dùng Git/kho mã nguồn riêng, xem mục 1.3b bên
+  dưới để chép code bằng USB/thư mục mạng thay vì Git.)
+
+1.3b. (Thay thế nếu KHÔNG dùng Git) Chép thủ công bằng USB/mạng chia sẻ
+
+  - Trên máy đang có sẵn code (máy đang đọc tài liệu này), copy toàn
+    bộ thư mục dự án, NHƯNG xóa bớt các thư mục sau trước khi copy để
+    đỡ nặng (không copy các thư mục này, chúng sẽ được tạo lại tự
+    động ở bước sau):
+      node_modules  (mọi nơi có, kể cả trong apps/, packages/)
+      .next
+      .turbo
+      dist
+
+  - Dán toàn bộ vào ổ đĩa của MÁY CHỦ, ví dụ D:\thuvien
+  - Bỏ qua bước 1.4 (git clone) bên dưới, đi thẳng tới Bước 2.
+
+
+--------------------------------------------------------------------
+PHẦN 2: ĐẶT ĐỊA CHỈ IP CỐ ĐỊNH CHO MÁY CHỦ
+--------------------------------------------------------------------
+
+Bước này RẤT QUAN TRỌNG — bỏ qua sẽ khiến phần mềm ngừng hoạt động khi
+router cấp lại địa chỉ IP khác cho máy (thường xảy ra sau khi tắt mở
+máy/router nhiều lần).
+
+Cách 1 (khuyến nghị, dễ và an toàn hơn): nhờ người phụ trách mạng/
+router của công ty "đặt IP cố định" (DHCP reservation) cho MÁY CHỦ
+này, dựa theo địa chỉ MAC của máy. Địa chỉ MAC xem bằng cách gõ trong
+PowerShell:
+
+      ipconfig /all
+
+  Tìm tới phần card mạng đang dùng (Wi-Fi hoặc Ethernet), dòng
+  "Physical Address" chính là địa chỉ MAC (dạng AA-BB-CC-11-22-33).
+
+Cách 2 (tự làm, nếu không có ai quản lý router):
+  - Bấm Start → gõ "Control Panel" → mở ra
+  - Chọn "Network and Internet" → "Network and Sharing Center"
+  - Bấm "Change adapter settings" (bên trái)
+  - Bấm chuột phải vào card mạng đang dùng (Wi-Fi hoặc Ethernet) →
+    chọn "Properties"
+  - Tích chọn "Internet Protocol Version 4 (TCP/IPv4)" → bấm nút
+    "Properties"
+  - Chọn "Use the following IP address", điền:
+      IP address: một địa chỉ CÒN TRỐNG trong mạng, ví dụ 192.168.1.50
+                  (hỏi người quản lý mạng dải IP nào đang dùng, dải
+                  nào còn trống để tránh trùng máy khác)
+      Subnet mask: tự động điền 255.255.255.0 sau khi gõ IP address
+      Default gateway: địa chỉ IP của router, thường là 192.168.1.1
+  - Ở phần DNS, điền Preferred DNS = giống Default gateway, hoặc
+    8.8.8.8 nếu không chắc.
+  - Bấm OK, OK để lưu lại.
+
+GHI NHỚ địa chỉ IP đã đặt, ví dụ 192.168.1.50 — sẽ dùng lại rất nhiều
+lần ở các bước sau. Trong toàn bộ tài liệu này, mọi chỗ viết
+"192.168.1.50" thì BẠN PHẢI THAY bằng địa chỉ IP thật của MÁY CHỦ.
+
+
+--------------------------------------------------------------------
+PHẦN 3: TẢI MÃ NGUỒN DỰ ÁN VỀ MÁY CHỦ
+--------------------------------------------------------------------
+
+(Bỏ qua phần này nếu đã copy thủ công ở Bước 1.3b)
+
+Mở PowerShell, gõ (thay <url-kho-ma-nguon> bằng địa chỉ Git thật của
+dự án, ví dụ https://github.com/ten-cong-ty/thuvien.git):
+
+      cd D:\
+      git clone <url-kho-ma-nguon> thuvien
+
+Sau khi chạy xong sẽ có thư mục D:\thuvien chứa toàn bộ mã nguồn.
+
+
+--------------------------------------------------------------------
+PHẦN 4: CÀI ĐẶT THƯ VIỆN CẦN THIẾT CHO DỰ ÁN
+--------------------------------------------------------------------
+
+Gõ trong PowerShell:
+
+      cd D:\thuvien
+      pnpm install
+
+Bước này tải về khá nhiều gói, có thể mất vài phút tùy tốc độ mạng.
+Chờ đến khi PowerShell hiện lại dấu nhắc lệnh (dòng có chữ "PS D:\...")
+là xong, không còn chạy nữa.
+
+
+--------------------------------------------------------------------
+PHẦN 5: TẠO FILE CẤU HÌNH (RẤT QUAN TRỌNG — LÀM ĐÚNG TỪNG DÒNG)
+--------------------------------------------------------------------
+
+5.1. Tạo 2 chuỗi bí mật ngẫu nhiên
+
+  Gõ lệnh sau HAI LẦN (mỗi lần sẽ ra một chuỗi khác nhau), ghi tạm 2
+  kết quả này ra một chỗ (ví dụ Notepad) để dùng ở bước sau:
+
+      node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+  Mỗi lần chạy sẽ in ra một chuỗi dài gồm chữ và số, ví dụ:
+  3f9a1c7e2b8d4f6a1c9e7b2d4f8a6c1e3f9a1c7e2b8d4f6a1c9e7b2d4f8a6c1e
+  (Không được dùng chuỗi ví dụ này — phải là chuỗi máy bạn tự sinh ra)
+
+5.2. Tạo file cấu hình cho phần API (phần "hậu trường" xử lý dữ liệu)
+
+  Gõ lệnh mở Notepad tạo file mới:
+
+      notepad D:\thuvien\apps\api\.env
+
+  Windows sẽ hỏi "Do you want to create a new file?" → bấm Yes.
+
+  Dán đúng nội dung sau vào Notepad (thay các phần <...> bằng giá trị
+  thật của bạn):
+
+      API_PORT=4000
+      DATABASE_URL="file:./prod.db"
+      JWT_ACCESS_SECRET="<dán chuỗi bí mật thứ 1 từ bước 5.1>"
+      COOKIE_SECRET="<dán chuỗi bí mật thứ 2 từ bước 5.1>"
+      WEB_ORIGIN="http://192.168.1.50:3000"
+
+  Lưu ý:
+  - Dòng WEB_ORIGIN: thay 192.168.1.50 bằng IP thật của MÁY CHỦ đã
+    đặt ở Phần 2, giữ nguyên số cổng ":3000" ở cuối.
+  - TUYỆT ĐỐI KHÔNG thêm dòng "NODE_ENV=production" vào file này.
+    Lý do: phần mềm chỉ gửi được "phiên đăng nhập ghi nhớ" (cookie)
+    qua kết nối HTTPS có khóa bảo mật khi NODE_ENV=production, mà
+    mạng nội bộ công ty đang dùng HTTP thường (không có khóa bảo
+    mật này) — nếu thêm dòng đó vào, người dùng sẽ tự động bị đăng
+    xuất sau khoảng 15 phút dùng phần mềm.
+  - Lưu file: menu File → Save (hoặc Ctrl+S), rồi đóng Notepad.
+
+5.3. Tạo file cấu hình cho phần Web (giao diện người dùng)
+
+  Gõ:
+
+      notepad D:\thuvien\apps\web\.env.local
+
+  Bấm Yes khi được hỏi tạo file mới. Dán nội dung sau (thay IP giống
+  bước trên):
+
+      NEXT_PUBLIC_API_URL="http://192.168.1.50:4000"
+
+  Lưu file (Ctrl+S) rồi đóng Notepad.
+
+
+--------------------------------------------------------------------
+PHẦN 6: KHỞI TẠO CƠ SỞ DỮ LIỆU
+--------------------------------------------------------------------
+
+Gõ lần lượt từng lệnh sau trong PowerShell, chờ mỗi lệnh chạy xong
+(quay lại dấu nhắc "PS D:\thuvien>") rồi mới gõ lệnh tiếp theo:
+
+      cd D:\thuvien
+      pnpm db:generate
+      pnpm db:migrate:deploy
+      pnpm db:seed
+
+Lệnh cuối cùng (db:seed) sẽ tạo sẵn 1 tài khoản quản trị để đăng nhập
+lần đầu. Trong kết quả hiện ra, tìm dòng dạng:
+
+      Tài khoản thủ thư: thuthu@cvpl.edu.vn / Admin@123
+
+Đây chính là tài khoản đăng nhập đầu tiên:
+      Email: thuthu@cvpl.edu.vn
+      Mật khẩu: Admin@123
+
+GHI NHỚ 2 THÔNG TIN NÀY. Sau khi đăng nhập lần đầu vào phần mềm, vào
+mục đổi mật khẩu để đổi ngay sang mật khẩu khác, không dùng mật khẩu
+mặc định lâu dài.
+
+
+--------------------------------------------------------------------
+PHẦN 7: BUILD (ĐÓNG GÓI) PHẦN GIAO DIỆN WEB
+--------------------------------------------------------------------
+
+Gõ:
+
+      pnpm --filter @thuvien/web build
+
+Chờ vài phút tới khi thấy dòng "Compiled successfully" hoặc tương tự
+và PowerShell quay lại dấu nhắc lệnh.
+
+(Phần API không cần build — chạy trực tiếp bằng công cụ "tsx" ở bước
+sau, không cần đóng gói riêng.)
+
+
+--------------------------------------------------------------------
+PHẦN 8: CÀI PM2 (CÔNG CỤ GIỮ CHO PHẦN MỀM LUÔN CHẠY NỀN)
+--------------------------------------------------------------------
+
+PM2 là công cụ giúp phần mềm tự chạy lại nếu bị lỗi/crash, và tự chạy
+lại mỗi khi khởi động lại MÁY CHỦ.
+
+Gõ:
+
+      npm install -g pm2 pm2-windows-startup
+
+Chờ cài xong (vài chục giây tới 1-2 phút).
+
+
+--------------------------------------------------------------------
+PHẦN 9: KHỞI CHẠY PHẦN MỀM BẰNG PM2
+--------------------------------------------------------------------
+
+Gõ lần lượt (chú ý mỗi dòng "cd" sẽ đổi thư mục làm việc trước khi
+chạy dòng "pm2 start" ngay sau nó):
+
+      cd D:\thuvien\apps\api
+      pm2 start pnpm --name thuvien-api -- start
+
+      cd D:\thuvien\apps\web
+      pm2 start pnpm --name thuvien-web -- start
+
+Kiểm tra cả 2 đã chạy chưa:
+
+      pm2 list
+
+Phải thấy 2 dòng "thuvien-api" và "thuvien-web" với trạng thái màu
+xanh "online". Nếu thấy "errored" hoặc "stopped", xem mục XỬ LÝ SỰ CỐ
+ở cuối tài liệu.
+
+Lưu lại danh sách này để PM2 nhớ mà tự chạy lại sau khi khởi động
+Windows:
+
+      pm2 save
+      pm2-startup install
+
+Lệnh cuối sẽ hỏi vài câu, cứ để mặc định và bấm Enter.
+
+LƯU Ý QUAN TRỌNG: cách này chỉ tự chạy lại khi có người ĐĂNG NHẬP vào
+tài khoản Windows đó sau khi khởi động máy. Nếu MÁY CHỦ bị mất điện
+đột ngột và khởi động lại mà không có ai đăng nhập, PM2 sẽ KHÔNG tự
+chạy. Muốn chống mất điện tuyệt đối, cần bật "đăng nhập tự động"
+(auto-logon) cho tài khoản Windows đó — nếu cần, hỏi lại để được
+hướng dẫn thêm phần này.
+
+
+--------------------------------------------------------------------
+PHẦN 10: MỞ CỔNG TRÊN TƯỜNG LỬA WINDOWS (FIREWALL)
+--------------------------------------------------------------------
+
+Nếu không làm bước này, các máy khác trong công ty sẽ KHÔNG truy cập
+được vào phần mềm dù MÁY CHỦ đã chạy đúng.
+
+Cách 1 — Gõ lệnh (nhanh nhất): mở PowerShell với quyền quản trị (xem
+lại cách mở ở Phần 0, nhớ chọn "Run as administrator"), gõ:
+
+      netsh advfirewall firewall add rule name="Thuvien Web" dir=in action=allow protocol=TCP localport=3000
+      netsh advfirewall firewall add rule name="Thuvien API" dir=in action=allow protocol=TCP localport=4000
+
+Cách 2 — Dùng giao diện (nếu không quen dòng lệnh):
+  - Bấm Start → gõ "Windows Defender Firewall with Advanced Security"
+    → mở ra
+  - Bấm "Inbound Rules" (bên trái) → "New Rule..." (bên phải)
+  - Chọn "Port" → Next
+  - Chọn "TCP", ô "Specific local ports" gõ: 3000 → Next
+  - Chọn "Allow the connection" → Next
+  - Để nguyên 3 ô tích (Domain/Private/Public) → Next
+  - Đặt tên "Thuvien Web" → Finish
+  - Lặp lại toàn bộ các bước trên một lần nữa nhưng gõ cổng 4000 và
+    đặt tên "Thuvien API"
+
+
+--------------------------------------------------------------------
+PHẦN 11: KIỂM TRA TỪ MÁY KHÁC TRONG CÔNG TY
+--------------------------------------------------------------------
+
+Trên một máy tính KHÁC, cùng kết nối vào mạng LAN của công ty, mở
+trình duyệt (Chrome/Edge/Firefox đều được), gõ vào thanh địa chỉ:
+
+      http://192.168.1.50:3000
+
+(thay bằng IP thật của MÁY CHỦ)
+
+Nếu hiện ra trang đăng nhập của phần mềm thư viện là THÀNH CÔNG.
+
+Đăng nhập bằng tài khoản ở Phần 6 (thuthu@cvpl.edu.vn / Admin@123),
+sau đó vào phần đổi mật khẩu để đổi ngay.
+
+
+--------------------------------------------------------------------
+PHẦN 12: CÁCH CẬP NHẬT PHẦN MỀM SAU NÀY (KHI CÓ THAY ĐỔI MÃ NGUỒN)
+--------------------------------------------------------------------
+
+Khi cần cập nhật phiên bản mới của phần mềm, mở PowerShell rồi gõ:
+
+      cd D:\thuvien
+      git pull
+      pnpm install
+      pnpm db:migrate:deploy
+      pnpm --filter @thuvien/web build
+      pm2 restart thuvien-api thuvien-web
+
+(Nếu không dùng Git, thay dòng "git pull" bằng việc chép đè thư mục
+mã nguồn mới vào, giữ nguyên 2 file .env đã tạo ở Phần 5, rồi chạy
+tiếp các lệnh còn lại.)
+
+
+--------------------------------------------------------------------
+PHẦN 13: SAO LƯU DỮ LIỆU
+--------------------------------------------------------------------
+
+Toàn bộ dữ liệu thật (sách, độc giả, lịch sử mượn trả...) nằm trong
+file:
+
+      D:\thuvien\packages\database\prisma\prod.db
+
+Ảnh bìa sách, ảnh đại diện độc giả nằm trong thư mục:
+
+      D:\thuvien\apps\api\uploads\
+
+Phần mềm đã tự động có cơ chế sao lưu định kỳ vào thư mục:
+
+      D:\thuvien\packages\database\prisma\backups\
+
+Tuy nhiên NÊN sao lưu thêm ra một ổ đĩa/máy tính KHÁC định kỳ (ví dụ
+mỗi tối), phòng trường hợp MÁY CHỦ hỏng ổ cứng thì vẫn còn dữ liệu.
+Cách đơn giản: dùng "Task Scheduler" có sẵn trong Windows để tự động
+chép 3 nơi trên sang một ổ USB gắn ngoài hoặc một máy tính khác trong
+mạng vào một giờ cố định mỗi ngày. Nếu cần, hỏi lại để được hướng dẫn
+thiết lập chi tiết phần này.
+
+
+--------------------------------------------------------------------
+XỬ LÝ SỰ CỐ THƯỜNG GẶP
+--------------------------------------------------------------------
+
+1) Gõ "node -v" hoặc "pnpm -v" báo "không phải là lệnh nội bộ hay bên
+   ngoài..."
+   → Đóng hẳn cửa sổ PowerShell, mở lại cửa sổ MỚI rồi thử lại. Nếu
+     vẫn lỗi, cài đặt lại Node.js (Phần 1.1) và khởi động lại máy.
+
+2) "pm2 list" thấy trạng thái "errored"
+   → Gõ: pm2 logs thuvien-api  (hoặc thuvien-web) để xem dòng lỗi chi
+     tiết. Thường do file .env ở Phần 5 gõ sai định dạng (thiếu dấu
+     ngoặc kép, thừa dấu cách) — mở lại file bằng Notepad kiểm tra.
+
+3) Máy khác trong công ty không mở được trang web
+   → Kiểm tra lại đã làm đúng Phần 10 (mở tường lửa) chưa.
+   → Kiểm tra máy đó có thật sự cùng mạng LAN với MÁY CHỦ không (thử
+     "ping 192.168.1.50" từ máy đó trong PowerShell, phải có phản hồi
+     "Reply from...").
+   → Kiểm tra lại đúng địa chỉ IP của MÁY CHỦ (Phần 2), có thể IP đã
+     bị đổi nếu chưa đặt cố định đúng cách.
+
+4) Đăng nhập được nhưng sau ít phút bị tự động đăng xuất
+   → Rất có thể trong file apps\api\.env có thêm dòng
+     "NODE_ENV=production" — mở file đó bằng Notepad, xóa dòng này
+     nếu có, lưu lại, rồi gõ: pm2 restart thuvien-api
+
+5) Khởi động lại MÁY CHỦ xong, phần mềm không tự chạy lại
+   → Đăng nhập vào đúng tài khoản Windows đã cài PM2, mở PowerShell
+     gõ "pm2 list" — nếu trống, gõ "pm2 resurrect" để chạy lại thủ
+     công. Xem lại lưu ý ở cuối Phần 9 về auto-logon.
+
+
+====================================================================
+HẾT TÀI LIỆU — Nếu gặp lỗi không có trong danh sách trên, ghi lại
+chính xác thông báo lỗi hiện ra và hỏi lại để được hỗ trợ thêm.
+====================================================================
