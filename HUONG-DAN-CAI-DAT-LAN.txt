@@ -423,7 +423,7 @@ tài khoản Windows đó sau khi khởi động máy. Nếu MÁY CHỦ bị m�
 đột ngột và khởi động lại mà không có ai đăng nhập, PM2 sẽ KHÔNG tự
 chạy. Muốn chống mất điện tuyệt đối, cần bật "đăng nhập tự động"
 (auto-logon) cho tài khoản Windows đó — nếu cần, hỏi lại để được
-hướng dẫn thêm phần này.
+hướng dẫn thêm phần này. oki
 
 9.3. (Tuỳ chọn — nếu thấy phiền) Chạy PM2 ẩn hoàn toàn bằng Windows
      Service thật, hết hẳn cửa sổ đen
