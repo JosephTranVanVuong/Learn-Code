@@ -20,6 +20,7 @@ module.exports = {
       cwd: "./apps/api",
       interpreter: "node",
       env: { TEMP: tmpDir, TMP: tmpDir },
+      max_memory_restart: "500M",
     },
     {
       name: "thuvien-web",
@@ -28,6 +29,7 @@ module.exports = {
       cwd: "./apps/web",
       interpreter: "node",
       env: { TEMP: tmpDir, TMP: tmpDir },
+      max_memory_restart: "500M",
     },
   ],
 };

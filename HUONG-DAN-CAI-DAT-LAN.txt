@@ -375,6 +375,7 @@ từng công cụ.
             cwd: "./apps/api",
             interpreter: "node",
             env: { TEMP: tmpDir, TMP: tmpDir },
+            max_memory_restart: "500M",
           },
           {
             name: "thuvien-web",
@@ -383,6 +384,7 @@ từng công cụ.
             cwd: "./apps/web",
             interpreter: "node",
             env: { TEMP: tmpDir, TMP: tmpDir },
+            max_memory_restart: "500M",
           },
         ],
       };
@@ -390,7 +392,17 @@ từng công cụ.
   (Phần "env: { TEMP: ..., TMP: ... }" là để phòng lỗi ở mục 5 phần
   GHI CHÚ đầu tài liệu — chỉ thật sự cần thiết nếu sau này chuyển
   sang chạy PM2 kiểu Windows Service ở Phần 9.3, nhưng để sẵn từ đầu
-  không gây hại gì khi chạy theo cách PM2 thường ở Phần 9.1/9.2.)
+  không gây hại gì khi chạy theo cách PM2 thường ở Phần 9.1/9.2.
+
+  "max_memory_restart: 500M" là để PM2 TỰ ĐỘNG khởi động lại app nếu
+  nó dùng quá 500MB RAM — phòng trường hợp app bị rò rỉ bộ nhớ (memory
+  leak) sau nhiều ngày chạy liên tục mà không ai để ý, tránh việc máy
+  chủ bị đơ/hết RAM. 500MB là mức khởi điểm hợp lý cho quy mô thư viện
+  1 chủng viện; nếu sau này thấy app bị PM2 tự khởi động lại quá
+  thường xuyên dù đang dùng bình thường (xem cột "↺" trong "pm2 list"
+  tăng đều), có thể tăng lên "800M" hoặc "1G" — sửa trực tiếp trong
+  ecosystem.config.js rồi chạy lại "pm2 delete <tên-app>" + "pm2 start
+  ecosystem.config.js --only <tên-app>" để áp dụng.)
 
   Nếu file đã có sẵn đúng nội dung, đóng Notepad lại (không cần lưu).
 
@@ -423,7 +435,42 @@ tài khoản Windows đó sau khi khởi động máy. Nếu MÁY CHỦ bị m�
 đột ngột và khởi động lại mà không có ai đăng nhập, PM2 sẽ KHÔNG tự
 chạy. Muốn chống mất điện tuyệt đối, cần bật "đăng nhập tự động"
 (auto-logon) cho tài khoản Windows đó — nếu cần, hỏi lại để được
-hướng dẫn thêm phần này. oki
+hướng dẫn thêm phần này.
+
+9.2b. (Khuyến nghị) Cài pm2-logrotate để tự dọn bớt file log
+
+  Mặc định PM2 ghi log (nhật ký hoạt động) của thuvien-api/thuvien-web
+  vào file ngày càng lớn, không bao giờ tự xóa bớt — chạy lâu ngày có
+  thể chiếm nhiều dung lượng ổ đĩa. "pm2-logrotate" là 1 module chính
+  thức của PM2 giúp tự động cắt nhỏ và xóa bớt log cũ.
+
+  Gõ:
+
+      pm2 install pm2-logrotate
+
+  Cấu hình cơ bản (tùy chọn, có thể bỏ qua để dùng mặc định — mặc định
+  là cắt file khi đạt 10MB, giữ lại tối đa 30 file cũ, không nén):
+
+      pm2 set pm2-logrotate:max_size 10M
+      pm2 set pm2-logrotate:retain 30
+      pm2 set pm2-logrotate:compress true
+
+  ("max_size" = kích thước 1 file log trước khi bị cắt sang file mới;
+  "retain" = số file log cũ giữ lại tối đa, file thừa sẽ tự bị xóa;
+  "compress true" = nén file log cũ lại bằng gzip cho đỡ tốn dung
+  lượng.)
+
+  Kiểm tra đã cài đúng chưa:
+
+      pm2 list
+
+  Phải thấy thêm 1 dòng "pm2-logrotate" ở trạng thái "online" trong
+  bảng "Module" bên dưới bảng app chính.
+
+  (Nếu sau này chuyển sang chạy PM2 kiểu Windows Service ở Phần 9.3,
+  KHÔNG cần cài lại — dự án "pm2-installer" đã tự cài sẵn 1 phiên bản
+  pm2-logrotate khác trong quá trình "npm run setup", có thể thấy nó
+  xuất hiện trong "pm2 list" với tên "@jessety/pm2-logrotate".)
 
 9.3. (Tuỳ chọn — nếu thấy phiền) Chạy PM2 ẩn hoàn toàn bằng Windows
      Service thật, hết hẳn cửa sổ đen
