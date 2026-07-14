@@ -582,6 +582,8 @@ mã nguồn mới vào, giữ nguyên 3 file cấu hình đã tạo ở Phần 5
 (packages\database\.env, apps\api\.env, apps\web\.env.local), rồi
 chạy tiếp các lệnh còn lại.)
 
+Thêm: nếu muốn dừng thuvien-api và thuvien-web thì dùng lệnh:
+pm2 stop thuvien-api thuvien-web
 
 --------------------------------------------------------------------
 PHẦN 13: SAO LƯU DỮ LIỆU
