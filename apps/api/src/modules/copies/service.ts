@@ -1,7 +1,6 @@
 import { prisma } from "@thuvien/database";
 import type { Copy, CopyLookup, CreateCopiesInput, UpdateCopyInput } from "@thuvien/shared";
-import { generateBarcode } from "../../lib/barcode";
-import { getBarcodePrefix } from "../settings/service";
+import { allocateBarcodes } from "../settings/service";
 import { generateBarcodeDocxBuffer } from "./barcode-docx";
 import { generateSpineLabelDocxBuffer } from "./spine-label-docx";
 
@@ -51,14 +50,12 @@ export async function addCopies(bookId: string, input: CreateCopiesInput): Promi
   const book = await prisma.book.findFirst({ where: { id: bookId, isDeleted: false } });
   if (!book) return null;
 
-  const [existingCount, prefix] = await Promise.all([
-    prisma.bookCopy.count({ where: { bookId } }),
-    getBarcodePrefix(),
-  ]);
+  const existingCount = await prisma.bookCopy.count({ where: { bookId } });
+  const barcodes = await allocateBarcodes(bookId, input.quantity, existingCount + 1);
   await prisma.bookCopy.createMany({
-    data: Array.from({ length: input.quantity }, (_, i) => ({
+    data: barcodes.map((barcode) => ({
       bookId,
-      barcode: generateBarcode(bookId, existingCount + i + 1, prefix),
+      barcode,
       location: input.location,
     })),
   });

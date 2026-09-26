@@ -197,10 +197,14 @@ model FineSettings {
 }
 
 /// Singleton row lưu tiền tố mã vạch dùng khi tự sinh mã vạch cho bản sao sách mới.
+/// Khi nextSequenceNumber khác NULL, mã vạch mới sinh theo dãy số tuần tự `${prefix}${số đếm 7 chữ số}`
+/// (dùng để tiếp nối đúng dãy mã vạch của phần mềm thư viện cũ khi di trú dữ liệu); ngược lại dùng
+/// kiểu sinh mã cũ dựa trên id sách (xem generateBarcode trong apps/api/src/lib/barcode.ts).
 model BarcodeSettings {
-  id        String   @id @default("singleton")
-  prefix    String?
-  updatedAt DateTime @updatedAt
+  id                 String   @id @default("singleton")
+  prefix             String?
+  nextSequenceNumber Int?
+  updatedAt          DateTime @updatedAt
 }
 
 /// Singleton row lưu cấu hình sao lưu tự động hàng ngày (bật/tắt, số bản giữ lại).

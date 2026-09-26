@@ -30,11 +30,13 @@ export type UpdateFineSettingsInput = z.infer<typeof updateFineSettingsInputSche
 
 export const barcodeSettingsSchema = z.object({
   prefix: z.string().nullable(),
+  nextSequenceNumber: z.number().int().positive().nullable(),
 });
 export type BarcodeSettings = z.infer<typeof barcodeSettingsSchema>;
 
 export const updateBarcodeSettingsInputSchema = z.object({
   prefix: z.string().nullable().optional(),
+  nextSequenceNumber: z.number().int().positive().nullable().optional(),
 });
 export type UpdateBarcodeSettingsInput = z.infer<typeof updateBarcodeSettingsInputSchema>;
 

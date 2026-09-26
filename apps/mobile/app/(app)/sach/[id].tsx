@@ -72,12 +72,16 @@ function Field({
   onChangeText,
   keyboardType,
   multiline,
+  editable = true,
+  hint,
 }: {
   label: string;
   value: string;
   onChangeText: (v: string) => void;
   keyboardType?: "default" | "numeric";
   multiline?: boolean;
+  editable?: boolean;
+  hint?: string;
 }) {
   return (
     <View style={{ marginBottom: 14 }}>
@@ -87,11 +91,15 @@ function Field({
         onChangeText={onChangeText}
         keyboardType={keyboardType}
         multiline={multiline}
+        editable={editable}
         style={inputStyle({
           textAlignVertical: multiline ? "top" : "center",
           minHeight: multiline ? 90 : undefined,
+          backgroundColor: editable ? "#ffffff" : "#f8fafc",
+          color: editable ? colors.textPrimary : colors.textMuted,
         })}
       />
+      {hint && <Text style={{ fontSize: 11, color: colors.textMuted, marginTop: 4 }}>{hint}</Text>}
     </View>
   );
 }
@@ -205,11 +213,10 @@ export default function SachDetailScreen() {
     setForm((f) => {
       if (!f) return f;
       const cat = categories?.find((c) => c.id === categoryId);
-      const shouldAutoFill = !f.classificationNumber && Boolean(cat?.ddcPrefix);
       return {
         ...f,
         categoryId,
-        classificationNumber: shouldAutoFill ? cat!.ddcPrefix! : f.classificationNumber,
+        classificationNumber: cat?.ddcPrefix ?? "",
       };
     });
   }
@@ -490,6 +497,8 @@ export default function SachDetailScreen() {
                 label={vi.book.classificationNumber}
                 value={form.classificationNumber}
                 onChangeText={(v) => updateForm("classificationNumber", v)}
+                editable={false}
+                hint={vi.book.classificationNumberHint}
               />
               <Field
                 label={vi.book.authorMark}

@@ -10,6 +10,7 @@ export default function BarcodeSettingsScreen() {
   const updateSettings = useUpdateBarcodeSettings();
 
   const [prefix, setPrefix] = useState("");
+  const [nextSequenceNumber, setNextSequenceNumber] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -17,6 +18,7 @@ export default function BarcodeSettingsScreen() {
   useEffect(() => {
     if (settings && !initialized) {
       setPrefix(settings.prefix ?? "");
+      setNextSequenceNumber(settings.nextSequenceNumber != null ? String(settings.nextSequenceNumber) : "");
       setInitialized(true);
     }
   }, [settings, initialized]);
@@ -25,7 +27,11 @@ export default function BarcodeSettingsScreen() {
     setError(null);
     setInfo(null);
     try {
-      await updateSettings.mutateAsync({ prefix: prefix.trim() || null });
+      const trimmedSeq = nextSequenceNumber.trim();
+      await updateSettings.mutateAsync({
+        prefix: prefix.trim() || null,
+        nextSequenceNumber: trimmedSeq ? Number.parseInt(trimmedSeq, 10) : null,
+      });
       setInfo(vi.settings.saved);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -45,7 +51,12 @@ export default function BarcodeSettingsScreen() {
     );
   }
 
-  const example = prefix.trim() ? `${prefix.trim()}-ABC123-1` : "ABC123-1";
+  const seqTrimmed = nextSequenceNumber.trim();
+  const example = seqTrimmed
+    ? `${prefix.trim()}${seqTrimmed.padStart(7, "0")}`
+    : prefix.trim()
+      ? `${prefix.trim()}-ABC123-1`
+      : "ABC123-1";
 
   return (
     <KeyboardAvoidingView
@@ -72,6 +83,20 @@ export default function BarcodeSettingsScreen() {
         />
         <Text style={{ fontSize: 12, color: "#94a3b8", marginTop: 6, marginBottom: 16 }}>
           {vi.settings.barcodePreview}: {example}
+        </Text>
+
+        <Text style={{ fontSize: 13, fontWeight: "500", color: "#334155", marginBottom: 4 }}>
+          {vi.settings.barcodeNextSequenceNumber}
+        </Text>
+        <TextInput
+          value={nextSequenceNumber}
+          onChangeText={(t) => setNextSequenceNumber(t.replace(/[^0-9]/g, ""))}
+          placeholder={vi.settings.barcodeNextSequenceNumberPlaceholder}
+          keyboardType="numeric"
+          style={{ borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 8, padding: 10, backgroundColor: "white" }}
+        />
+        <Text style={{ fontSize: 12, color: "#94a3b8", marginTop: 6, marginBottom: 16 }}>
+          {vi.settings.barcodeNextSequenceNumberHint}
         </Text>
 
         {error && (

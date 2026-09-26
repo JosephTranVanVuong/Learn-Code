@@ -357,11 +357,10 @@ export default function ChiTietSachPage() {
                       value={form.categoryId}
                       onChange={(e) => {
                         const cat = categories?.find((c) => c.id === e.target.value);
-                        const shouldAutoFill = !form.classificationNumber && Boolean(cat?.ddcPrefix);
                         setForm({
                           ...form,
                           categoryId: e.target.value,
-                          classificationNumber: shouldAutoFill ? cat!.ddcPrefix! : form.classificationNumber,
+                          classificationNumber: cat?.ddcPrefix ?? "",
                         });
                       }}
                       className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
@@ -377,10 +376,11 @@ export default function ChiTietSachPage() {
                     <label className="block text-sm font-medium text-slate-700">{vi.book.classificationNumber}</label>
                     <input
                       value={form.classificationNumber}
-                      onChange={(e) => setForm({ ...form, classificationNumber: e.target.value })}
+                      disabled
                       placeholder={vi.book.classificationNumberPlaceholder}
-                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+                      className="mt-1 w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-500"
                     />
+                    <p className="mt-1 text-xs text-slate-400">{vi.book.classificationNumberHint}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700">{vi.book.authorMark}</label>

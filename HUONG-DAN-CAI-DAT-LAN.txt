@@ -658,6 +658,40 @@ thiết lập chi tiết phần này.
 
 
 --------------------------------------------------------------------
+PHẦN 14 (TÙY CHỌN): CÀI THÊM ĐỂ DÙNG TÍNH NĂNG "NHẬP DỮ LIỆU TỪ PHẦN
+MỀM CŨ" VỚI FILE ACCESS (.accdb)
+--------------------------------------------------------------------
+
+Bỏ qua phần này nếu không cần nhập dữ liệu từ phần mềm thư viện cũ,
+hoặc chỉ cần nhập từ file Excel (không cần cài gì thêm cho trường hợp
+Excel).
+
+Mục "Cài đặt > Nhập dữ liệu từ phần mềm cũ" (chỉ tài khoản Quản trị
+thấy được) hỗ trợ đọc trực tiếp file Access (.accdb) của phần mềm thư
+viện cũ. Tính năng này CHỈ chạy được trên Windows (không chạy được
+nếu MÁY CHỦ dùng Docker/Linux — xem ghi chú tương ứng trong
+HUONG-DAN-CAI-DAT-LAN-DOCKER.txt), và cần cài thêm:
+
+  - Truy cập: https://www.microsoft.com/en-us/download/details.aspx?id=54920
+  - Tải bản "Microsoft Access Database Engine 2016 Redistributable"
+    (chọn bản 64-bit nếu Node.js cài bản 64-bit — thường là mặc định).
+  - Cài đặt xong không cần khởi động lại máy.
+
+Sau khi cài xong, vào mục "Cài đặt > Nhập dữ liệu từ phần mềm cũ",
+gõ đường dẫn đầy đủ tới file .accdb đang có sẵn TRÊN MÁY CHỦ (ví dụ
+D:\DataThuVien.accdb — file phải nằm sẵn trên máy chủ, không upload
+qua trình duyệt vì file này thường rất lớn), tick chọn phần muốn nhập
+(sách/độc giả/lịch sử mượn-trả), rồi bấm "Bắt đầu nhập". Tính năng
+này CỘNG THÊM dữ liệu mới, KHÔNG xóa/ghi đè dữ liệu đang có — chạy
+lại nhiều lần cũng an toàn.
+
+Nếu bấm "Bắt đầu nhập" mà báo lỗi không đọc được file: kiểm tra lại
+đã cài đúng "Microsoft Access Database Engine" ở trên chưa, và đường
+dẫn file gõ vào có đúng chính tả/còn tồn tại trên MÁY CHỦ không (không
+phải trên máy đang mở trình duyệt).
+
+
+--------------------------------------------------------------------
 XỬ LÝ SỰ CỐ THƯỜNG GẶP
 --------------------------------------------------------------------
 
@@ -714,6 +748,17 @@ XỬ LÝ SỰ CỐ THƯỜNG GẶP
      9.3 (cập nhật mã nguồn để lấy bản ecosystem.config.js đã sửa,
      rồi "pm2 delete thuvien-api" + "pm2 start ecosystem.config.js
      --only thuvien-api" + "pm2 save").
+
+8) Vào mục "Nhập dữ liệu từ phần mềm cũ", chọn file Access (.accdb)
+   báo lỗi không đọc được file
+   → Kiểm tra đã cài "Microsoft Access Database Engine" chưa (xem
+     Phần 14). Nếu đã cài mà vẫn lỗi, kiểm tra lại đường dẫn file gõ
+     vào — file PHẢI nằm sẵn TRÊN MÁY CHỦ (nơi chạy thuvien-api), gõ
+     đường dẫn tương đối theo máy đó, không phải máy đang mở trình
+     duyệt để bấm nút.
+   → Tính năng này không chạy được nếu MÁY CHỦ cài theo cách Docker
+     (xem HUONG-DAN-CAI-DAT-LAN-DOCKER.txt) — chỉ dùng được cách cài
+     trực tiếp trên Windows trong tài liệu này.
 
 
 ====================================================================

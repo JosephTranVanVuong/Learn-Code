@@ -89,7 +89,7 @@ export async function settingsRoutes(app: FastifyInstance) {
 
   app.patch("/barcode", async (request, reply) => {
     const body = updateBarcodeSettingsInputSchema.parse(request.body);
-    return reply.send(await updateBarcodeSettings(body.prefix));
+    return reply.send(await updateBarcodeSettings(body));
   });
 
   // --- Email ---

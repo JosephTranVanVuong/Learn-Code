@@ -16,3 +16,8 @@ apps/api/uploads/
 /data/
 .vscode/*
 !.vscode/extensions.json
+
+# Dữ liệu xuất từ phần mềm thư viện cũ (chứa thông tin cá nhân thật của độc giả) — không commit.
+*.accdb
+*.mdb
+/TpDsTongQuat.xls

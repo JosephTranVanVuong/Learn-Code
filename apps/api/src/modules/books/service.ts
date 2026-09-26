@@ -8,8 +8,7 @@ import type {
   SpineLabelExportSummaryItem,
   UpdateBookInput,
 } from "@thuvien/shared";
-import { generateBarcode } from "../../lib/barcode";
-import { getBarcodePrefix } from "../settings/service";
+import { allocateBarcodes } from "../settings/service";
 
 type BookRow = Prisma.BookGetPayload<{ include: { category: true; author: true; copies: true } }>;
 
@@ -167,11 +166,11 @@ export async function createBook(input: CreateBookInput): Promise<BookDetail> {
   });
 
   if (input.initialCopies > 0) {
-    const prefix = await getBarcodePrefix();
+    const barcodes = await allocateBarcodes(book.id, input.initialCopies, 1);
     await prisma.bookCopy.createMany({
-      data: Array.from({ length: input.initialCopies }, (_, i) => ({
+      data: barcodes.map((barcode) => ({
         bookId: book.id,
-        barcode: generateBarcode(book.id, i + 1, prefix),
+        barcode,
         location: input.location,
       })),
     });

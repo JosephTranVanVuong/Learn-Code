@@ -1,6 +1,6 @@
 # CURRENT_PHASE.md — Trạng thái tính năng hiện tại
 
-Cập nhật lần cuối: 2026-07-10
+Cập nhật lần cuối: 2026-09-20
 
 ## Đã hoàn thành (nền tảng, các phiên trước)
 
@@ -47,6 +47,25 @@ Cả 3 mục 3-5 đều được xác minh an toàn qua API thật (không chạ
 
 Toàn bộ mục 1-10 đã xác minh bằng `pnpm --filter @thuvien/api build` + `pnpm --filter @thuvien/web build` + `npx tsc --noEmit` (mobile) + `npx expo export --platform ios` (build thử bundle thật) sau mỗi thay đổi lớn.
 
+## Đã hoàn thành trong phiên gần nhất (arc 2026-09-19 → 2026-09-20 — di trú dữ liệu thật + tính năng nhập dữ liệu phần mềm cũ)
+
+1. **Di trú toàn bộ dữ liệu thật** từ phần mềm thư viện cũ (2 file người dùng cung cấp: `DataThuVien.accdb` — Access, và `TpDsTongQuat.xls` — báo cáo Excel), thực hiện thủ công qua script 1 lần trước khi đóng gói thành tính năng (mục 3):
+   - **13.304 bản sao, 7.733 đầu sách — giữ nguyên 100% mã vạch gốc** (`631THxxxxxxx`), kèm ISBN/mô tả/NXB/năm XB/ngôn ngữ/số phân loại DDC/ký hiệu tác giả lấy trực tiếp từ Access (bảng `TpTacPhamPop`/`TpTacPhamCom`/`TpDDC`/`TpNhaXB`/`TpListTacGia`).
+   - **18 thể loại** — 10 thể loại tôn giáo/triết học đã seed sẵn (khớp theo `ddcPrefix`) + 8 thể loại mới theo nhóm Dewey cấp 1 (Khoa học xã hội/Ngôn ngữ/Văn học/Lịch sử-Địa lý/...) cho sách ngoài phạm vi tôn giáo.
+   - **234 độc giả thật** (`DgDocGia`) — mã độc giả `DG${mã cũ đệm 5 số}`, mật khẩu mặc định `ChungSinh@123`. **Không có ảnh đại diện** — trường "Hinh" trong Access là đối tượng OLE nhúng (Word Document/Metafile Picture), không phải ảnh JPEG thuần, không trích xuất được bằng công cụ thông thường.
+   - **7.666 phiếu mượn/trả thật** (`DgMuonTra`, trong đó 106 đang mượn thật — bản sao tự chuyển trạng thái "Đang mượn"), bỏ qua 741 dòng tham chiếu sách đã bị loại khỏi danh mục cũ trước khi xuất dữ liệu.
+   - Đã xóa toàn bộ dữ liệu demo/seed cũ trước khi nhập (205 sách/22 độc giả/5 phiếu mượn — xác nhận là seed qua timestamp giống nhau, không phải dữ liệu thật).
+   - **Không nhập**: lệ phí/phạt lịch sử (`DgLePhi`, 3.777 dòng) — không có liên kết trực tiếp tới từng lượt mượn cụ thể trong dữ liệu cũ, không ánh xạ sạch được vào bảng `Fine` (vốn gắn 1-1 với 1 `Loan`).
+2. **Mã vạch tuần tự cho sách mới** — thêm `BarcodeSettings.nextSequenceNumber` (migration `add_barcode_sequence`): khi có giá trị, mã vạch mới sinh theo dãy số tuần tự `${prefix}${7 chữ số}` (tiếp nối đúng dãy mã vạch cũ, hiện đặt `631TH` + `14734`) thay vì kiểu mặc định dựa trên id sách. Áp dụng ở cả 3 nơi tạo bản sao (nhập Excel sách, thêm sách mới, thêm bản sao). Thêm ô cấu hình trên Cài đặt > Mã vạch (web + mobile).
+3. **Tính năng "Nhập dữ liệu từ phần mềm cũ"** (`Cài đặt > Nhập dữ liệu từ phần mềm cũ`, module `old-system-import`) — đóng gói quy trình di trú ở mục 1 thành công cụ dùng lại được trong UI:
+   - Nguồn Access (`.accdb`): nhập đường dẫn file trên máy chủ (không upload qua web vì file có thể rất lớn — bản thật 420MB), đọc qua `apps/api/scripts/export-old-library-db.ps1` (PowerShell + OLEDB), 3 ô tick chọn nhập sách/độc giả/lịch sử mượn riêng lẻ. Chỉ QUAN_TRI thấy mục này (đọc file theo đường dẫn tùy ý trên máy chủ — rủi ro cần hạn chế quyền). Chỉ chạy được trên Windows có cài "Microsoft Access Database Engine".
+   - Nguồn Excel (báo cáo "Danh sách tổng quát tác phẩm"): chỉ có dữ liệu sách/mã vạch, mọi STAFF_ROLES dùng được.
+   - **Hành vi: CỘNG THÊM, bỏ qua những gì đã tồn tại** — sách trùng tên (không phân biệt hoa/thường) dùng lại đầu sách hiện có; mã vạch/mã độc giả/phiếu mượn đã có thì bỏ qua — an toàn để chạy lại nhiều lần, không bao giờ xóa/ghi đè dữ liệu hiện có. Thể loại khớp động theo `ddcPrefix` của các thể loại đã cấu hình sẵn (không hard-code riêng cho thư viện này); không khớp được thì rơi vào "Chưa phân loại" (tự tạo).
+   - Đã kiểm thử thật bằng cách chạy lại với chính file Access gốc: báo đúng 0 mới/bỏ qua toàn bộ (khớp chính xác dữ liệu đã nhập ở mục 1) — xác nhận logic chống trùng đúng.
+4. Thêm `*.accdb`/`TpDsTongQuat.xls` vào `.gitignore` (dữ liệu cá nhân thật của độc giả, tránh lộ khi commit).
+
+Toàn bộ mục 1-4 đã xác minh bằng build API/Web + `npx tsc --noEmit` (mobile) + gọi API/Prisma thật (không dùng công cụ trình duyệt).
+
 ## Đang chờ / chưa có phản hồi từ người dùng
 
 - Các tính năng vừa thiết kế lại ở arc 2026-07-09 → 2026-07-10 (mục ngay trên) — người dùng đang phản hồi/điều chỉnh trực tiếp qua từng lượt trong phiên (đã yêu cầu chỉnh sửa 2 lần cho `sach/[id].tsx`), coi như đang trong vòng lặp góp ý, chưa chốt xong hẳn.
@@ -58,3 +77,8 @@ Toàn bộ mục 1-10 đã xác minh bằng `pnpm --filter @thuvien/api build` +
 - Deploy lên môi trường ngoài local (đổi `DATABASE_URL`/`provider` sang Postgres) — chưa được yêu cầu.
 - Build APK qua EAS để cài thử điện thoại thật — cấu hình `eas.json` đã có sẵn nhưng chưa build lần nào trong các phiên gần đây.
 - Chọn phạm vi xóa dữ liệu theo bộ lọc (vd. chỉ xóa lượt mượn cũ hơn N năm) — đã cân nhắc khi tư vấn "Xóa dữ liệu" nhưng chưa được yêu cầu, hiện vẫn là xóa toàn bộ theo loại.
+- Bắt buộc đổi mật khẩu lần đăng nhập đầu (`mustChangePassword`) — hiện chưa có, đáng chú ý vì 234 độc giả vừa di trú đang dùng chung 1 mật khẩu mặc định `ChungSinh@123`.
+- Rà soát thủ công dữ liệu di trú còn thiếu: 113 đầu sách "Không rõ tác giả" (`Author.name`), 234 độc giả chưa gán `PatronType`/Khóa-Lớp (`className` — dữ liệu cũ không có trường tương đương), vài độc giả có 9-23 lượt mượn active vượt hạn mức chính sách mặc định.
+- Ảnh đại diện độc giả cho 234 độc giả vừa di trú — không trích xuất được từ file Access cũ (trường "Hinh" là OLE Object, không phải ảnh JPEG thuần); nếu cần, phải chụp/scan lại thủ công.
+- Bộ test tự động (unit/integration) cho API/Web/Mobile — hiện chưa có test suite nào trong repo.
+- Security review chính thức qua toàn bộ repo — chưa từng chạy (skill `security-review` có sẵn trong Claude Code, chưa dùng).

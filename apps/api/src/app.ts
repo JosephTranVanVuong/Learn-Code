@@ -24,6 +24,7 @@ import { usersRoutes } from "./modules/users/route";
 import { patronTypesRoutes } from "./modules/patron-types/route";
 import { settingsRoutes } from "./modules/settings/route";
 import { dataManagementRoutes } from "./modules/data-management/route";
+import { oldSystemImportRoutes } from "./modules/old-system-import/route";
 
 export async function buildApp() {
   const app = Fastify({
@@ -82,6 +83,7 @@ export async function buildApp() {
   await app.register(patronTypesRoutes, { prefix: "/api/v1/patron-types" });
   await app.register(settingsRoutes, { prefix: "/api/v1/settings" });
   await app.register(dataManagementRoutes, { prefix: "/api/v1/data-management" });
+  await app.register(oldSystemImportRoutes, { prefix: "/api/v1/old-system-import" });
 
   return app;
 }

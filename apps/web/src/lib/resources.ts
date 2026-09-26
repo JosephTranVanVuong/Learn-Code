@@ -8,6 +8,7 @@ import {
   createFinesApi,
   createLoansApi,
   createNotificationsApi,
+  createOldSystemImportApi,
   createPatronsApi,
   createPatronTypesApi,
   createReportsApi,
@@ -30,3 +31,4 @@ export const notificationsApi = createNotificationsApi(apiClient);
 export const usersApi = createUsersApi(apiClient);
 export const settingsApi = createSettingsApi(apiClient);
 export const dataManagementApi = createDataManagementApi(apiClient);
+export const oldSystemImportApi = createOldSystemImportApi(apiClient);

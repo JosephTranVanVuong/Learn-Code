@@ -421,6 +421,17 @@ XỬ LÝ SỰ CỐ THƯỜNG GẶP
    Xem lại lưu ý ở Phần 9 về auto-logon nếu cần chống mất điện tuyệt
    đối.
 
+8) Mục "Cài đặt > Nhập dữ liệu từ phần mềm cũ", phần chọn file Access
+   (.accdb) không dùng được / báo lỗi không đọc được file
+   → Đây là hạn chế đã biết, KHÔNG phải lỗi cài đặt: phần đọc file
+     Access chạy qua PowerShell + driver Windows (Microsoft Access
+     Database Engine), chỉ hoạt động khi API chạy trực tiếp trên
+     Windows. Vì container Docker chạy Linux bên trong, tính năng này
+     KHÔNG chạy được khi cài theo cách Docker của tài liệu này. Nếu
+     cần dùng, hoặc dùng mục nhập từ file Excel thay thế (không bị
+     hạn chế này), hoặc chuyển sang cài theo HUONG-DAN-CAI-DAT-LAN.txt
+     (không Docker).
+
 
 ====================================================================
 HẾT TÀI LIỆU — Nếu gặp lỗi không có trong danh sách trên, ghi lại

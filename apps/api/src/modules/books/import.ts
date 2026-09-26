@@ -1,9 +1,8 @@
 import * as XLSX from "xlsx";
 import { prisma, Prisma } from "@thuvien/database";
 import type { BookImportResult } from "@thuvien/shared";
-import { generateBarcode } from "../../lib/barcode";
 import { slugify } from "../../lib/slugify";
-import { getBarcodePrefix } from "../settings/service";
+import { allocateBarcodes } from "../settings/service";
 
 const TEMPLATE_HEADERS = [
   "Tên sách",
@@ -82,7 +81,6 @@ export async function importBooksFromExcel(buffer: Buffer): Promise<BookImportRe
     select: { title: true },
   });
   const existingTitles = new Set(existingBooks.map((b) => b.title.trim().toLowerCase()));
-  const barcodePrefix = await getBarcodePrefix();
 
   for (let i = 0; i < rows.length; i++) {
     const rowNum = i + 2;
@@ -168,11 +166,9 @@ export async function importBooksFromExcel(buffer: Buffer): Promise<BookImportRe
       });
 
       if (initialCopies > 0) {
+        const barcodes = await allocateBarcodes(book.id, initialCopies, 1);
         await prisma.bookCopy.createMany({
-          data: Array.from({ length: initialCopies }, (_, idx) => ({
-            bookId: book.id,
-            barcode: generateBarcode(book.id, idx + 1, barcodePrefix),
-          })),
+          data: barcodes.map((barcode) => ({ bookId: book.id, barcode })),
         });
       }
 
