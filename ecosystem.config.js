@@ -15,10 +15,13 @@ module.exports = {
   apps: [
     {
       name: "thuvien-api",
-      script: "node_modules/tsx/dist/cli.mjs",
-      args: "src/server.ts",
+      // Nạp tsx qua "--import" thay vì chạy tsx/dist/cli.mjs: CLI của tsx tự
+      // spawn thêm 1 tiến trình node con không có windowsHide, khiến Windows
+      // bật ra cửa sổ console "node.exe" (đóng/Ctrl+C cửa sổ đó sẽ làm API tắt).
+      script: "src/server.ts",
       cwd: "./apps/api",
       interpreter: "node",
+      node_args: "--import tsx",
       env: { TEMP: tmpDir, TMP: tmpDir },
       max_memory_restart: "500M",
     },
